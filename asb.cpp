@@ -120,17 +120,18 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 		auto fnFormat = [](uint64_t size) -> string {
 			double dbytes;
 			string unit = "B";
-			if (size > 1024) {		
-				dbytes = size / 1024.0;
-				unit = "KB";
+
+			if (size > uint64_t(1024 * 1024 * 1024)) {
+				dbytes = size / (1024 * 1024 * 1024.0);
+				unit = "GB";
 			}
-			else if (size > (1024 * 1024)) {
+			else if (size > uint64_t(1024 * 1024)) {
 				dbytes = size / (1024 * 1024.0);
 				unit = "MB";
 			}
-			else if (size > (1024 * 1024 * 1024)) {
-				dbytes = size / (1024 * 1024 * 1024.0);
-				unit = "GB";
+			else if(size > 1024) {
+				dbytes = size / 1024.0;
+				unit = "KB";
 			}
 			else {}
 
