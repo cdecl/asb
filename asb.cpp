@@ -163,14 +163,14 @@ void usage()
 {
 	cout << "Usage: asb <options> <url>" << endl;
 	cout << "  options:" << endl;
-	cout << "    -d <N>    duraction (seconds)" << endl;
-	cout << "    -c <N>    connections" << endl;
-	cout << "    -t <N>    threads" << endl;
-	cout << "    -once     run once, response write, other parameters skip " << endl;
+	cout << "    -d <N>    duraction (seconds), default 10" << endl;
+	cout << "    -c <N>    connections, default 10" << endl;
+	cout << "    -t <N>    threads, default 2" << endl;
+	cout << "    -once     run once, response console write, other parameters ignored " << endl;
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
 	cout << "  example:    asb -once http://www.some_url/" << endl;
-	cout << "  version:    0.2" << endl;
+	cout << "  version:    0.3" << endl;
 }
 
 int main(int argc, char* argv[])
