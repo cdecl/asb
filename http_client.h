@@ -9,8 +9,6 @@
 #include <chrono>
 #include <map>
 #include <regex>
-#include <mutex>
-#include <condition_variable>
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -31,11 +29,14 @@ struct http_stat
 
 using Stat = std::map <string, http_stat>;
 
+
 class http_client
 {
 public:
-	http_client(boost::asio::io_service& io_service) : resolver_(io_service), socket_(io_service), async_(true)
+	http_client(boost::asio::io_service& io_service) 
+		: resolver_(io_service), socket_(io_service)
 	{
+		next_session = std::bind(&http_client::next_session_s, this);
 	}
 
 	~http_client()
@@ -82,15 +83,27 @@ public:
 		}
 	}
 
-	void start(bool async)
+	void start_once()
 	{
-		async_ = async;
+		next_session_s();
+		next_session = [this]{
+			socket_.get_io_service().stop();
+		};
+	}
+
+	void start()
+	{
 		next_session();
 	}
 
 	bool is_open()
 	{
 		return socket_.is_open();
+	}
+
+	std::stringstream& get_response()
+	{
+		return resp_stream;
 	}
 
 	Stat& get_stat()
@@ -100,7 +113,7 @@ public:
 
 	static std::string now()
 	{
-		std::time_t now = chrono::system_clock::to_time_t(chrono::system_clock::now());
+		std::time_t now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
 		string s = std::ctime(&now);
 		return s.substr(0, s.find_last_of('\n'));
 	}
@@ -127,8 +140,36 @@ public:
 	}
 
 
-
 private:
+
+	void next_session_s()
+	{
+		async_write();
+		async_read_header();
+	}
+
+
+	void async_write()
+	{
+		build_reqeust();
+
+		t0_ = std::chrono::high_resolution_clock::now();
+		boost::asio::async_write(socket_, request_,
+			[this/*, t0*/](const boost::system::error_code &err, size_t len)
+		{
+			if (!err) {
+				std::string sn = now();
+				stat_[sn].request++;
+
+			}
+			else {
+				this->socket_.close();
+			}
+
+		});
+
+	}
+
 	void async_read_header()
 	{
 		// buuffer initialize 
@@ -146,6 +187,9 @@ private:
 				next_session();
 			}
 			else {
+				resp_stream.str("");
+				resp_stream << boost::asio::buffer_cast<const char*>(response_.data());
+				
 				// header invalid check, get content-length 
 				int content_length = parse_header();
 
@@ -177,6 +221,8 @@ private:
 				std::string sn = now();
 				stat_[sn].recv_bytes += len;
 
+				resp_stream << boost::asio::buffer_cast<const char*>(response_.data());
+
 				if (left > len) {
 					async_read_content(left - len);
 				}
@@ -196,39 +242,6 @@ private:
 		});
 	}
 
-	void next_session()
-	{
-		cv_.notify_all();
-
-		async_write();
-		async_read_header();
-
-		if (!async_) {
-			std::unique_lock<std::mutex> lock(mx_);
-			cv_.wait(lock);
-		}
-	}
-
-	void async_write()
-	{
-		build_reqeust();
-
-		t0_ = chrono::high_resolution_clock::now();
-		boost::asio::async_write(socket_, request_,
-			[this/*, t0*/](const boost::system::error_code &err, size_t len)
-		{
-			if (!err) {
-				std::string sn = now();
-				stat_[sn].request++;
-
-			}
-			else {
-				this->socket_.close();
-			}
-
-		});
-
-	}
 
 	int parse_header() 
 	{
@@ -317,14 +330,13 @@ private:
 	tcp::socket socket_;
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
-
-	std::mutex mx_;
-	std::condition_variable cv_;
-	bool async_;
+	std::stringstream resp_stream;
 
 	std::string host_;
 	std::string path_;
 	std::string port_;
+
+	std::function<void()> next_session;
 
 	Stat stat_;
 	decltype(chrono::high_resolution_clock::now()) t0_;

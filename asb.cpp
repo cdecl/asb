@@ -20,7 +20,7 @@ using boost::format;
 
 
 
-void Run(const std::string &url, int connections, int threads, int duration, bool async)
+void Run(const std::string &url, int connections, int threads, int duration, bool once)
 {
 	// connection test
 	{
@@ -30,6 +30,14 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 
 		if (!b) {
 			cout << "> Connection error OR Invalid url" << endl;
+			return;
+		}
+
+		if (once) {
+			client.start_once();
+			io.run();
+
+			cout << client.get_response().str() << endl;
 			return;
 		}
 	}
@@ -52,7 +60,7 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 		auto sio = make_shared<boost::asio::io_service>();
 		vio.push_back(sio);
 
-		thread tr([sio, url, connections, threads, duration, async, &vCons, &mtx]()
+		thread tr([sio, url, connections, threads, duration, &vCons, &mtx]()
 		{
 			boost::asio::deadline_timer t(*sio, boost::posix_time::seconds(duration));
 			t.async_wait([sio](const boost::system::error_code){
@@ -63,7 +71,7 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 			for (int i = 0; i < cons; ++i) {
 				auto c = make_shared<http_client>(*sio);
 				c->open(url);
-				c->start(async);
+				c->start();
 
 				{
 					std::lock_guard<std::mutex> lock(mtx);
@@ -147,8 +155,10 @@ void usage()
 	cout << "    -d <N>    duraction (seconds)" << endl;
 	cout << "    -c <N>    connections" << endl;
 	cout << "    -t <N>    threads" << endl;
+	cout << "    -once     run once, response write, other parameters skip " << endl;
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
+	cout << "  example:    asb -once http://www.some_url/" << endl;
 	cout << "  version:    0.1" << endl;
 }
 
@@ -162,7 +172,7 @@ int main(int argc, char* argv[])
 	int connections = 10;
 	int threads = 2;
 	int duration = 10;
-	bool async = true;
+	bool once = false;
 	std::string url;
 
 	try {
@@ -177,8 +187,8 @@ int main(int argc, char* argv[])
 			else if (string("-t") == argv[i]) {
 				threads = std::stoi(argv[++i]);
 			}
-			else if (string("-s") == argv[i]) {
-				async = false;
+			else if (string("-once") == argv[i]) {
+				once = true;
 			}
 		}
 
@@ -192,7 +202,7 @@ int main(int argc, char* argv[])
 	}
 	 
 	try {
-		Run(url, connections, threads, duration, async);
+		Run(url, connections, threads, duration, once);
 	}
 	catch (exception &e) {
 		cout << e.what() << endl;
