@@ -93,6 +93,7 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 	auto tm1 = chrono::high_resolution_clock::now();
 	{
 		Stat stat;
+		StCode stcode;
 		uint64_t request = 0;
 		uint64_t response = 0;
 		uint64_t bytes = 0;
@@ -103,6 +104,10 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 				stat[val.first].request += val.second.request;		// count
 				stat[val.first].response += val.second.response;		// count
 				stat[val.first].recv_bytes += val.second.recv_bytes;	// read data size
+			}
+
+			for (auto &val : c->get_stcode()) {
+				stcode[val.first] += val.second;	
 			}
 		}
 
@@ -141,6 +146,11 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 		cout << "> Per seconds" << endl;
 		cout << str(format("    %-20s: %0.2lf") % "Requests/sec" % (response / (double)(stat.size() - 1))) << endl;
 		cout << str(format("    %-20s: %s") % "Response Bytes/sec" % fnFormat(bytes / (stat.size() - 1))) << endl;
+		cout << "> Response Status Code" << endl;
+		for (auto &val : stcode) {
+			cout << str(format("    %-20s: %d") % val.first % val.second) << endl;
+		}
+
 		cout << endl;
 	}
 

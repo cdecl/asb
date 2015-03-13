@@ -28,6 +28,7 @@ struct http_stat
 };
 
 using Stat = std::map <string, http_stat>;
+using StCode = std::map <string, int>;
 
 
 class http_client
@@ -109,6 +110,11 @@ public:
 	Stat& get_stat()
 	{
 		return stat_;
+	}
+
+	StCode& get_stcode()
+	{
+		return stcode_;
 	}
 
 	static std::string now()
@@ -264,7 +270,7 @@ private:
 			}
 
 			string http_version = vs[0];
-			int status_code = std::stoi(vs[1]);
+			string status_code = vs[1];
 			string status_msg = vs[2];
 
 			if (!response_stream || http_version.substr(0, 5) != "HTTP/")
@@ -272,12 +278,15 @@ private:
 				throw logic_error("Invalid http header version");
 			}
 
-			if (status_code != 200)
-			{
-				std::ostringstream oss;
-				oss << "Response returned with status code " << status_code << endl;
-				throw logic_error(oss.str());
-			}
+			// status_code statistics
+			stcode_[http_version + " " + status_code]++;
+
+			//if (status_code != 200)
+			//{
+			//	std::ostringstream oss;
+			//	oss << "Response returned with status code " << status_code << endl;
+			//	throw logic_error(oss.str());
+			//}
 
 			//cout << status_code << endl;
 			while (getline(response_stream, header) && header != "\r") {
@@ -339,5 +348,6 @@ private:
 	std::function<void()> next_session;
 
 	Stat stat_;
+	StCode stcode_;
 	decltype(chrono::high_resolution_clock::now()) t0_;
 };
