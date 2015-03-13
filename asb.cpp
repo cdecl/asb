@@ -170,7 +170,7 @@ void usage()
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
 	cout << "  example:    asb -once http://www.some_url/" << endl;
-	cout << "  version:    0.1" << endl;
+	cout << "  version:    0.2" << endl;
 }
 
 int main(int argc, char* argv[])

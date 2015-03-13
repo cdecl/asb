@@ -104,7 +104,7 @@ public:
 
 	std::stringstream& get_response()
 	{
-		return resp_stream;
+		return resp_stream_;
 	}
 
 	Stat& get_stat()
@@ -179,6 +179,8 @@ private:
 
 	void async_read_header()
 	{
+		using namespace boost::asio;
+
 		// buuffer initialize 
 		response_.consume(response_.size());
 
@@ -194,23 +196,26 @@ private:
 				next_session();
 			}
 			else {
-				resp_stream.str("");
-				resp_stream << boost::asio::buffer_cast<const char*>(response_.data());
+				resp_stream_.str("");
+				resp_stream_ << string(buffer_cast<const char*>(response_.data()), response_.size());
 				
+				bool chunked = false;
 				// header invalid check, get content-length 
-				int content_length = parse_header();
+				int content_length = parse_header(chunked);
 
 				// logging
 				if (content_length >= 0) {
-
 					std::string sn = now();
 					stat_[sn].response++;
 					stat_[sn].transfer_bytes += nRecv;
 				}
 
-				//cout << "content_length: " << content_length << ", " << "response_.size: " << response_.size();
+				if (chunked) {
+					content_length = parse_contents(chunked);
+				}
+				
 				if (content_length > 0 && content_length > (int)response_.size()) {
-					async_read_content(content_length - response_.size());
+					async_read_content(content_length - response_.size(), chunked);
 				}
 				else {
 					next_session();
@@ -219,23 +224,38 @@ private:
 		});
 	}
 
-	void async_read_content(size_t left)
+	void async_read_content(size_t left, bool chunked = false)
 	{
 		boost::asio::async_read(this->socket_, this->response_, boost::asio::transfer_at_least(1),
-			[this, left](const boost::system::error_code &err, std::size_t len)
+			[this, left, chunked](const boost::system::error_code &err, std::size_t len)
 		{
+			using namespace boost::asio;
+
 			if (!err) {
 				std::string sn = now();
 				stat_[sn].transfer_bytes += len;
 
-				resp_stream << boost::asio::buffer_cast<const char*>(response_.data());
+				std::string s = string(buffer_cast<const char*>(response_.data()), response_.size());
+				resp_stream_ << s.substr(s.length() - len);
 
-				if (left > len) {
-					async_read_content(left - len);
+
+				if (chunked) {
+					int content_length = parse_contents(chunked);
+					if (content_length > 0) {
+						async_read_content(content_length);
+					}
+					else {
+						next_session();
+					}
 				}
 				else {
-					parse_contents();
-					next_session();
+					if (left > len) {
+						async_read_content(left - len);
+					}
+					else {
+						parse_contents();
+						next_session();
+					}
 				}
 			}
 			else if (err) {	// err
@@ -250,7 +270,7 @@ private:
 	}
 
 
-	int parse_header() 
+	int parse_header(bool &chunked)
 	{
 		using namespace boost::algorithm;
 		int content_length = 0;
@@ -282,21 +302,22 @@ private:
 			// status_code statistics
 			stcode_[http_version + " " + status_code]++;
 
-			//if (status_code != 200)
-			//{
-			//	std::ostringstream oss;
-			//	oss << "Response returned with status code " << status_code << endl;
-			//	throw logic_error(oss.str());
-			//}
-
-			//cout << status_code << endl;
 			while (getline(response_stream, header) && header != "\r") {
 				string::size_type pos = header.find("Content-Length");
 				if (pos != string::npos) {
 					pos = header.find(":");
 					content_length = std::stoi(header.substr(pos + 1));
 				}
-				//cout << header << endl;
+
+				// Transfer-Encoding : chunked
+				pos = header.find("Transfer-Encoding");
+				if (pos != string::npos) {
+					pos = header.find(":");
+
+					if (string::npos != header.substr(pos + 1).find("chunked")) {
+						chunked = true;
+					}
+				}
 			}
 			
 		}
@@ -308,20 +329,53 @@ private:
 		return content_length;
 	}
 
-	bool parse_contents()
+	int parse_contents(bool chunked = false)
 	{
+		using namespace boost::asio;
+		int content_length = 0;
+
 		try {
 			std::istream response_stream(&response_);
 
-			std::string s;
-			while (!response_stream.eof()) {
-				std::getline(response_stream, s);
+			if (chunked) {
+				string header;
+
+				while (true) {
+					if (response_.size() == 0) break;
+
+					string s = std::string(buffer_cast<const char*>(response_.data()), response_.size());
+
+					if (string::npos != s.find("\n")) {
+						getline(response_stream, header);
+						content_length = stoi(header, nullptr, 16);
+						
+						if (content_length == 0) {
+							response_.consume(response_.size());
+							break;
+						}
+					}
+
+					// content_length + "\r\n"
+					if ((content_length) <= (int)response_.size()) {
+						if (content_length) { content_length += 2; }
+
+						response_.consume(content_length);
+					}
+					else {
+						break;
+					}
+				}
+			}
+			else {
+				std::string s;
+				while (!response_stream.eof()) {
+					std::getline(response_stream, s);
+				}
 			}
 		}
-		catch (exception &) {
-		}
+		catch (exception &) {}
 
-		return true;
+		return content_length;
 	}
 
 	void build_reqeust()
@@ -340,7 +394,7 @@ private:
 	tcp::socket socket_;
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
-	std::stringstream resp_stream;
+	std::stringstream resp_stream_;
 
 	std::string host_;
 	std::string path_;
