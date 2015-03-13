@@ -21,10 +21,10 @@ using ms = std::chrono::milliseconds;
 
 struct http_stat
 {
-	http_stat() : request(0), response(0), recv_bytes(0) {}
+	http_stat() : request(0), response(0), transfer_bytes(0) {}
 	uint64_t request;
 	uint64_t response;
-	uint64_t recv_bytes;
+	uint64_t transfer_bytes;
 };
 
 using Stat = std::map <string, http_stat>;
@@ -166,6 +166,7 @@ private:
 			if (!err) {
 				std::string sn = now();
 				stat_[sn].request++;
+				stat_[sn].transfer_bytes += len;
 
 			}
 			else {
@@ -204,7 +205,7 @@ private:
 
 					std::string sn = now();
 					stat_[sn].response++;
-					stat_[sn].recv_bytes += nRecv;
+					stat_[sn].transfer_bytes += nRecv;
 				}
 
 				//cout << "content_length: " << content_length << ", " << "response_.size: " << response_.size();
@@ -225,7 +226,7 @@ private:
 		{
 			if (!err) {
 				std::string sn = now();
-				stat_[sn].recv_bytes += len;
+				stat_[sn].transfer_bytes += len;
 
 				resp_stream << boost::asio::buffer_cast<const char*>(response_.data());
 
