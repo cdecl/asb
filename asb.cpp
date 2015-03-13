@@ -20,7 +20,7 @@ using boost::format;
 
 
 
-void Run(const std::string &url, int connections, int threads, int duration)
+void Run(const std::string &url, int connections, int threads, int duration, bool async)
 {
 	// connection test
 	{
@@ -35,6 +35,7 @@ void Run(const std::string &url, int connections, int threads, int duration)
 	}
 	
 	cout << str(format("> Start and Running %ds (%s)") % duration % http_client::now()) << endl;
+	cout << "  " << url << endl;
 	cout << str(format("    %d connections and %d Threads ")
 		% connections % threads) << endl;
 
@@ -51,7 +52,7 @@ void Run(const std::string &url, int connections, int threads, int duration)
 		auto sio = make_shared<boost::asio::io_service>();
 		vio.push_back(sio);
 
-		thread tr([sio, url, connections, threads, duration, &vCons, &mtx]()
+		thread tr([sio, url, connections, threads, duration, async, &vCons, &mtx]()
 		{
 			boost::asio::deadline_timer t(*sio, boost::posix_time::seconds(duration));
 			t.async_wait([sio](const boost::system::error_code){
@@ -62,7 +63,7 @@ void Run(const std::string &url, int connections, int threads, int duration)
 			for (int i = 0; i < cons; ++i) {
 				auto c = make_shared<http_client>(*sio);
 				c->open(url);
-				c->async_start();
+				c->start(async);
 
 				{
 					std::lock_guard<std::mutex> lock(mtx);
@@ -83,7 +84,7 @@ void Run(const std::string &url, int connections, int threads, int duration)
 
 	auto tm1 = chrono::high_resolution_clock::now();
 	{
-		LogMap logSum;
+		Stat stat;
 		uint64_t request = 0;
 		uint64_t response = 0;
 		uint64_t bytes = 0;
@@ -91,13 +92,13 @@ void Run(const std::string &url, int connections, int threads, int duration)
 		
 		for (auto &c : vCons) {
 			for (auto &val : c->get_stat()) {
-				logSum[val.first].request += val.second.request;		// count
-				logSum[val.first].response += val.second.response;		// count
-				logSum[val.first].recv_bytes += val.second.recv_bytes;	// read data size
+				stat[val.first].request += val.second.request;		// count
+				stat[val.first].response += val.second.response;		// count
+				stat[val.first].recv_bytes += val.second.recv_bytes;	// read data size
 			}
 		}
 
-		for (auto &c : logSum) {
+		for (auto &c : stat) {
 			request += c.second.request;
 			response += c.second.response;
 			bytes += c.second.recv_bytes;
@@ -130,8 +131,8 @@ void Run(const std::string &url, int connections, int threads, int duration)
 		cout << str(format("    %-20s: %ld") % "Response Count" % response) << endl;
 		cout << str(format("    %-20s: %s") % "Response Bytes" % fnFormat(bytes)) << endl;
 		cout << "> Per seconds" << endl;
-		cout << str(format("    %-20s: %0.2lf") % "Requests/sec" % (response / (double)(logSum.size() - 1))) << endl;
-		cout << str(format("    %-20s: %s") % "Response Bytes/sec" % fnFormat(bytes / (logSum.size() - 1))) << endl;
+		cout << str(format("    %-20s: %0.2lf") % "Requests/sec" % (response / (double)(stat.size() - 1))) << endl;
+		cout << str(format("    %-20s: %s") % "Response Bytes/sec" % fnFormat(bytes / (stat.size() - 1))) << endl;
 		cout << endl;
 	}
 
@@ -161,6 +162,7 @@ int main(int argc, char* argv[])
 	int connections = 10;
 	int threads = 2;
 	int duration = 10;
+	bool async = true;
 	std::string url;
 
 	try {
@@ -175,6 +177,9 @@ int main(int argc, char* argv[])
 			else if (string("-t") == argv[i]) {
 				threads = std::stoi(argv[++i]);
 			}
+			else if (string("-s") == argv[i]) {
+				async = false;
+			}
 		}
 
 		if (i != (argc - 1)) throw std::logic_error("Parameter error");
@@ -187,7 +192,7 @@ int main(int argc, char* argv[])
 	}
 	 
 	try {
-		Run(url, connections, threads, duration);
+		Run(url, connections, threads, duration, async);
 	}
 	catch (exception &e) {
 		cout << e.what() << endl;

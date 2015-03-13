@@ -9,6 +9,9 @@
 #include <chrono>
 #include <map>
 #include <regex>
+#include <mutex>
+#include <condition_variable>
+
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/regex.hpp>
@@ -26,12 +29,12 @@ struct http_stat
 	uint64_t recv_bytes;
 };
 
-using LogMap = std::map <string, http_stat>;
+using Stat = std::map <string, http_stat>;
 
 class http_client
 {
 public:
-	http_client(boost::asio::io_service& io_service) : resolver_(io_service), socket_(io_service)
+	http_client(boost::asio::io_service& io_service) : resolver_(io_service), socket_(io_service), async_(true)
 	{
 	}
 
@@ -79,10 +82,10 @@ public:
 		}
 	}
 
-	void async_start()
+	void start(bool async)
 	{
-		async_write();
-		async_read_header();
+		async_ = async;
+		next_session();
 	}
 
 	bool is_open()
@@ -90,9 +93,9 @@ public:
 		return socket_.is_open();
 	}
 
-	LogMap& get_stat()
+	Stat& get_stat()
 	{
-		return logm_;
+		return stat_;
 	}
 
 	static std::string now()
@@ -124,6 +127,8 @@ public:
 	}
 
 
+
+private:
 	void async_read_header()
 	{
 		// buuffer initialize 
@@ -135,33 +140,29 @@ public:
 			int nRecv = response_.size();
 			// close 
 			if (err) {
-				socket_.shutdown(boost::asio::socket_base::shutdown_both);
 				socket_.close();
 				reopen();
-				async_write();
-				async_read_header();
+
+				next_session();
 			}
 			else {
 				// header invalid check, get content-length 
 				int content_length = parse_header();
 
-				// stastics logging
+				// logging
 				if (content_length >= 0) {
-					//auto dur = chrono::high_resolution_clock::now() - t0_;
-					//auto dcount = chrono::duration_cast<ms>(dur).count();
 
 					std::string sn = now();
-					logm_[sn].response++;
-					logm_[sn].recv_bytes += nRecv;
+					stat_[sn].response++;
+					stat_[sn].recv_bytes += nRecv;
 				}
-				
+
 				//cout << "content_length: " << content_length << ", " << "response_.size: " << response_.size();
 				if (content_length > 0 && content_length > (int)response_.size()) {
 					async_read_content(content_length - response_.size());
 				}
 				else {
-					this->async_write();
-					this->async_read_header();
+					next_session();
 				}
 			}
 		});
@@ -169,37 +170,43 @@ public:
 
 	void async_read_content(size_t left)
 	{
-		this->response_.consume(this->response_.size());
-
-		//cout << "boost::asio::async_read" << endl;
 		boost::asio::async_read(this->socket_, this->response_, boost::asio::transfer_at_least(1),
 			[this, left](const boost::system::error_code &err, std::size_t len)
 		{
-			//cout << "boost::asio::async_read[](){} - len: " << len << ", err: " << err << endl;
 			if (!err) {
 				std::string sn = now();
-				logm_[sn].recv_bytes += len;
+				stat_[sn].recv_bytes += len;
 
 				if (left > len) {
 					async_read_content(left - len);
 				}
 				else {
 					parse_contents();
-
-					this->async_write();
-					this->async_read_header();
+					next_session();
 				}
 			}
 			else if (err) {	// err
 				if (err != boost::asio::error::eof) {
-					this->socket_.shutdown(boost::asio::socket_base::shutdown_both);
 					this->socket_.close();
 					this->reopen();
 				}
-				this->async_write();
-				this->async_read_header();
+
+				next_session();
 			}
 		});
+	}
+
+	void next_session()
+	{
+		cv_.notify_all();
+
+		async_write();
+		async_read_header();
+
+		if (!async_) {
+			std::unique_lock<std::mutex> lock(mx_);
+			cv_.wait(lock);
+		}
 	}
 
 	void async_write()
@@ -212,11 +219,10 @@ public:
 		{
 			if (!err) {
 				std::string sn = now();
-				logm_[sn].request++;
+				stat_[sn].request++;
 
 			}
 			else {
-				this->socket_.shutdown(boost::asio::socket_base::shutdown_both);
 				this->socket_.close();
 			}
 
@@ -224,7 +230,6 @@ public:
 
 	}
 
-private:
 	int parse_header() 
 	{
 		using namespace boost::algorithm;
@@ -313,10 +318,14 @@ private:
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
 
+	std::mutex mx_;
+	std::condition_variable cv_;
+	bool async_;
+
 	std::string host_;
 	std::string path_;
 	std::string port_;
 
-	LogMap logm_;
+	Stat stat_;
 	decltype(chrono::high_resolution_clock::now()) t0_;
 };
