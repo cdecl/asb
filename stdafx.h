@@ -7,8 +7,11 @@
 
 #include "targetver.h"
 
-#include <stdio.h>
-#include <tchar.h>
+#ifdef _MSC_VER
+  #include <stdio.h>
+  #include <tchar.h>
+#endif
+
 
 
 
