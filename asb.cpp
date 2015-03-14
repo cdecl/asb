@@ -18,7 +18,11 @@ using namespace std;
 using boost::str;
 using boost::format;
 
+using http_client_list = vector < shared_ptr<http_client> > ;
+using io_service_list = vector < shared_ptr<boost::asio::io_service> > ;
 
+void Run(const std::string &url, int connections, int threads, int duration, bool once);
+void Result(uint64_t totial_duration, http_client_list &vCons);
 
 void Run(const std::string &url, int connections, int threads, int duration, bool once)
 {
@@ -51,8 +55,8 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 	std::vector<thread> ios;
 
 	std::mutex mtx;
-	vector<shared_ptr<http_client>> vCons;
-	vector<shared_ptr<boost::asio::io_service>> vio;
+	http_client_list vCons;
+	io_service_list vio;
 
 	auto tm0 = chrono::high_resolution_clock::now();
 	for (int i = 0; i < threads; ++i) {
@@ -91,71 +95,74 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 	}
 
 	auto tm1 = chrono::high_resolution_clock::now();
-	{
-		Stat stat;
-		StCode stcode;
-		uint64_t request = 0;
-		uint64_t response = 0;
-		uint64_t bytes = 0;
-		uint64_t totial_duration = chrono::duration_cast<ms>(tm1 - tm0).count();
-		
-		for (auto &c : vCons) {
-			for (auto &val : c->get_stat()) {
-				stat[val.first].request += val.second.request;		// count
-				stat[val.first].response += val.second.response;		// count
-				stat[val.first].transfer_bytes += val.second.transfer_bytes;	// read data size
-			}
-
-			for (auto &val : c->get_stcode()) {
-				stcode[val.first] += val.second;	
-			}
-		}
-
-		for (auto &c : stat) {
-			request += c.second.request;
-			response += c.second.response;
-			bytes += c.second.transfer_bytes;
-		}
-
-		auto fnFormat = [](uint64_t size) -> string {
-			double dbytes;
-			string unit = "B";
-
-			if (size > uint64_t(1024 * 1024 * 1024)) {
-				dbytes = size / (1024 * 1024 * 1024.0);
-				unit = "GB";
-			}
-			else if (size > uint64_t(1024 * 1024)) {
-				dbytes = size / (1024 * 1024.0);
-				unit = "MB";
-			}
-			else if(size > 1024) {
-				dbytes = size / 1024.0;
-				unit = "KB";
-			}
-			else {}
-
-			return str(boost::format("%0.2lf%s") % dbytes % unit);
-		};
-		
-		cout << str(format("> %-17s: %sms") % "Duration" % totial_duration) << endl;
-		cout << str(format("    %-15s: %0.2lfms") % "Latency" % (totial_duration / (double)response)) << endl;
-
-		cout << str(format("    %-15s: %ld") % "Requests " % request) << endl;
-		cout << str(format("    %-15s: %ld") % "Response " % response) << endl;
-		cout << str(format("    %-15s: %s") % "Transfer" % fnFormat(bytes)) << endl;
-		cout << "> Per seconds" << endl;
-		cout << str(format("    %-15s: %0.2lf") % "Requests/sec" % (response / (double)(stat.size() - 1))) << endl;
-		cout << str(format("    %-15s: %s") % "Transfer/sec" % fnFormat(bytes / (stat.size() - 1))) << endl;
-		cout << "> Response Status" << endl;
-		for (auto &val : stcode) {
-			cout << str(format("    %-15s: %d") % val.first % val.second) << endl;
-		}
-
-		cout << endl;
-	}
+	Result(chrono::duration_cast<ms>(tm1 - tm0).count(), vCons);
 
 	vCons.clear();
+}
+
+
+void Result(uint64_t totial_duration, http_client_list &vCons)
+{
+	Stat stat;
+	StCode stcode;
+	uint64_t request = 0;
+	uint64_t response = 0;
+	uint64_t bytes = 0;
+
+	for (auto &c : vCons) {
+		for (auto &val : c->get_stat()) {
+			stat[val.first].request += val.second.request;					// count
+			stat[val.first].response += val.second.response;				// count
+			stat[val.first].transfer_bytes += val.second.transfer_bytes;	// transfer  data size
+		}
+
+		for (auto &val : c->get_stcode()) {
+			stcode[val.first] += val.second;
+		}
+	}
+
+	for (auto &c : stat) {
+		request += c.second.request;
+		response += c.second.response;
+		bytes += c.second.transfer_bytes;
+	}
+
+	auto fnFormat = [](uint64_t size) -> string {
+		double dbytes;
+		string unit = "B";
+
+		if (size > uint64_t(1024 * 1024 * 1024)) {
+			dbytes = size / (1024 * 1024 * 1024.0);
+			unit = "GB";
+		}
+		else if (size > uint64_t(1024 * 1024)) {
+			dbytes = size / (1024 * 1024.0);
+			unit = "MB";
+		}
+		else if (size > 1024) {
+			dbytes = size / 1024.0;
+			unit = "KB";
+		}
+		else {}
+
+		return str(boost::format("%0.2lf%s") % dbytes % unit);
+	};
+
+	cout << str(format("> %-17s: %sms") % "Duration" % totial_duration) << endl;
+	cout << str(format("    %-15s: %0.2lfms") % "Latency" % (totial_duration / (double)response)) << endl;
+
+	cout << str(format("    %-15s: %ld") % "Requests " % request) << endl;
+	cout << str(format("    %-15s: %ld") % "Response " % response) << endl;
+	cout << str(format("    %-15s: %s") % "Transfer" % fnFormat(bytes)) << endl;
+	cout << "> Per seconds" << endl;
+	cout << str(format("    %-15s: %0.2lf") % "Requests/sec" % (response / (double)(stat.size() - 1))) << endl;
+	cout << str(format("    %-15s: %s") % "Transfer/sec" % fnFormat(bytes / (stat.size() - 1))) << endl;
+	cout << "> Response Status" << endl;
+	for (auto &val : stcode) {
+		cout << str(format("    %-15s: %d") % val.first % val.second) << endl;
+	}
+
+	cout << endl;
 }
 
 
