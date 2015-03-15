@@ -394,7 +394,7 @@ private:
 
 				while (true) {
 					if (response_.size() == 0) break;
-					size_t tt = response_.size();
+
 					string s = std::string(buffer_cast<const char*>(response_.data()), response_.size());
 
 					string::size_type pos = s.find("\n");
