@@ -171,13 +171,13 @@ void Result(uint64_t totial_duration, http_client_list &vCons)
 }
 
 
-void usage()
+void usage(int duration, int threads, int connections)
 {
 	cout << "Usage: asb <options> <url>" << endl;
 	cout << "  options:" << endl;
-	cout << "    -d <N>    duraction (seconds), default 10" << endl;
-	cout << "    -c <N>    connections, default 10" << endl;
-	cout << "    -t <N>    threads, default 2" << endl;
+	cout << "    -d <N>    duraction (seconds), default : 10" << endl;
+	cout << "    -t <N>    threads, default is cpu core(thread::hardware_concurrency()) : " << threads << endl;
+	cout << "    -c <N>    connections, default is cpu core x 5 : " << connections << endl;
 	cout << "    <url>     support http, https" << endl;
 	cout << "    -test     run test, response console write, other parameters ignored " << endl;
 	cout << endl;
@@ -188,15 +188,16 @@ void usage()
 
 int main(int argc, char* argv[])
 {
+	int duration = 10;
+	int threads = (int)thread::hardware_concurrency();
+	int connections = threads * 5;
+
 	if (argc < 2) {
-		usage();
+		usage(duration, threads, connections);
 		return -1;
 	}
-
-	int connections = 10;
-	int threads = 2;
-	int duration = 10;
-	bool once = false;
+	
+	bool test = false;
 	std::string url;
 
 	try {
@@ -212,7 +213,7 @@ int main(int argc, char* argv[])
 				threads = std::stoi(argv[++i]);
 			}
 			else if (string("-test") == argv[i]) {
-				once = true;
+				test = true;
 			}
 		}
 
@@ -221,12 +222,12 @@ int main(int argc, char* argv[])
 		url = argv[argc - 1];
 	}
 	catch (...) {
-		usage();
+		usage(duration, threads, connections);
 		return -1;
 	}
 	 
 	try {
-		Run(url, connections, threads, duration, once);
+		Run(url, connections, threads, duration, test);
 	}
 	catch (exception &e) {
 		cout << e.what() << endl;
