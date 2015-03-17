@@ -28,8 +28,11 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 {
 	// connection test
 	{
+		boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
+		ctx.set_default_verify_paths();
+
 		boost::asio::io_service io;
-		http_client client(io);
+		http_client client(io, ctx);
 		bool b = client.open(url);
 
 		if (!b) {
@@ -73,7 +76,11 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 
 			int cons = connections / threads;
 			for (int i = 0; i < cons; ++i) {
-				auto c = make_shared<http_client>(*sio);
+
+				boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
+				ctx.set_default_verify_paths();
+
+				auto c = make_shared<http_client>(*sio, ctx);
 				c->open(url);
 				c->start();
 

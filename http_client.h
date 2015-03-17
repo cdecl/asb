@@ -11,6 +11,7 @@
 #include <regex>
 
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/bind.hpp>
 #include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
@@ -34,8 +35,8 @@ using StCode = std::map <string, int>;
 class http_client
 {
 public:
-	http_client(boost::asio::io_service& io_service) 
-		: resolver_(io_service), socket_(io_service)
+	http_client(boost::asio::io_service& io_service, boost::asio::ssl::context& context)
+		: resolver_(io_service), socket_(io_service, context)
 	{
 		next_session = std::bind(&http_client::next_session_s, this);
 	}
@@ -50,13 +51,32 @@ public:
 		bool r = false;
 
 		try {
-			if (!urlparser(url, host_, port_, path_)) {
+			if (!urlparser(url, protocol_, host_, port_, path_)) {
 				throw std::logic_error("error : invalid url");
+			}
+
+			if (protocol_ == "https") {
+				socket_.set_verify_mode(boost::asio::ssl::verify_peer);
+				socket_.set_verify_callback([this](bool preverified, boost::asio::ssl::verify_context& ctx) -> bool
+				{
+					char subject_name[256];
+					X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+					X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+					//std::cout << "Verifying " << subject_name << "\n";
+
+					return true || preverified;
+				});
 			}
 
 			tcp::resolver::query query(host_, port_);
 			auto endpoint_iter = resolver_.resolve(query);
-			boost::asio::connect(socket_, endpoint_iter);
+			boost::asio::connect(socket_.lowest_layer(), endpoint_iter);
+
+			if (protocol_ == "https") {
+				boost::system::error_code err;
+				socket_.handshake(boost::asio::ssl::stream_base::client, err);
+			}
+
 			r = true;
 		}
 		catch (...) {}
@@ -66,13 +86,13 @@ public:
 	void close()
 	{
 		if (is_open()) {
-			socket_.close();
+			socket_.lowest_layer().close();
 		}
 	}
 
 	void cancel()
 	{
-		socket_.cancel();
+		socket_.lowest_layer().cancel();
 	}
 
 	void reopen()
@@ -80,7 +100,7 @@ public:
 		if (!is_open()) {
 			tcp::resolver::query query(host_, port_);
 			auto endpoint_iter = resolver_.resolve(query);
-			boost::asio::connect(socket_, endpoint_iter);
+			boost::asio::connect(socket_.lowest_layer(), endpoint_iter);
 		}
 	}
 
@@ -99,7 +119,7 @@ public:
 
 	bool is_open()
 	{
-		return socket_.is_open();
+		return socket_.lowest_layer().is_open();
 	}
 
 	std::stringstream& get_response()
@@ -124,7 +144,7 @@ public:
 		return s.substr(0, s.find_last_of('\n'));
 	}
 
-	static bool urlparser(std::string url, std::string &host, std::string &port, std::string &path)
+	static bool urlparser(const std::string url, std::string &protocol, std::string &host, std::string &port, std::string &path)
 	{
 		bool ret = false;
 
@@ -134,9 +154,16 @@ public:
 		ret = boost::regex_search(url, m, r);
 
 		if (ret) {
+			protocol = boost::algorithm::to_lower_copy(m[1].str());
 			host = m[2].str();
 			port = m[3].str();
-			if (port.empty()) port = "80";
+			
+			if (port.empty()) {
+				port = "80";
+				if (protocol == "https") {
+					port = "443";
+				}
+			}
 
 			path = m[4].str();
 			if (path.empty()) path = "/";
@@ -170,7 +197,7 @@ private:
 
 			}
 			else {
-				this->socket_.close();
+				close();
 			}
 
 		});
@@ -190,7 +217,7 @@ private:
 			int nRecv = response_.size();
 			// close 
 			if (err) {
-				socket_.close();
+				close();
 				reopen();
 
 				next_session();
@@ -260,8 +287,8 @@ private:
 			}
 			else if (err) {	// err
 				if (err != boost::asio::error::eof) {
-					this->socket_.close();
-					this->reopen();
+					close();
+					reopen();
 				}
 
 				next_session();
@@ -342,12 +369,12 @@ private:
 
 				while (true) {
 					if (response_.size() == 0) break;
-
+					size_t tt = response_.size();
 					string s = std::string(buffer_cast<const char*>(response_.data()), response_.size());
 
-					if (string::npos != s.find("\n")) {
-						getline(response_stream, header);
-						content_length = stoi(header, nullptr, 16);
+					string::size_type pos = s.find("\n");
+					if (string::npos != pos) {
+						content_length = stoi(s.substr(0, pos), nullptr, 16);
 						
 						if (content_length == 0) {
 							response_.consume(response_.size());
@@ -391,11 +418,13 @@ private:
 
 private:
 	tcp::resolver resolver_;
-	tcp::socket socket_;
+	//tcp::socket socket_;
+	boost::asio::ssl::stream<tcp::socket> socket_;
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
 	std::stringstream resp_stream_;
 
+	std::string protocol_;
 	std::string host_;
 	std::string path_;
 	std::string port_;
