@@ -3,20 +3,23 @@ Simple http benchmarking tool
 > using boost::asio, libssl-dev(openssl) 
 
 
+**Usage**
 ```
 Usage: asb <options> <url>
   options:
     -d <N>    duraction (seconds), default 10
     -c <N>    connections, default 10
     -t <N>    threads, default 2
-    -once     run once, response console write, other parameters ignored
+    <url>     support http, https
+    -test     run test, response console write, other parameters ignored
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
   example:    asb -once http://www.some_url/
-  version:    0.3
+  version:    0.5
 
 ```
 
+**Example**
 ```
 asb$ asb -d 5 -c 40 http://localhost
 > Start and Running 5s (2015-03-17.10:35:49)
