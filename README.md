@@ -1,5 +1,5 @@
 # asb
-simple bechmarket tool 
+simple benchmarking tool 
 > using boost::asio, libssl-dev(openssl) 
 
 
