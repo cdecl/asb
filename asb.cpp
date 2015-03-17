@@ -178,11 +178,12 @@ void usage()
 	cout << "    -d <N>    duraction (seconds), default 10" << endl;
 	cout << "    -c <N>    connections, default 10" << endl;
 	cout << "    -t <N>    threads, default 2" << endl;
-	cout << "    -once     run once, response console write, other parameters ignored " << endl;
+	cout << "    <url>     support http, https" << endl;
+	cout << "    -test     run test, response console write, other parameters ignored " << endl;
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
 	cout << "  example:    asb -once http://www.some_url/" << endl;
-	cout << "  version:    0.3" << endl;
+	cout << "  version:    0.5" << endl;
 }
 
 int main(int argc, char* argv[])
@@ -210,7 +211,7 @@ int main(int argc, char* argv[])
 			else if (string("-t") == argv[i]) {
 				threads = std::stoi(argv[++i]);
 			}
-			else if (string("-once") == argv[i]) {
+			else if (string("-test") == argv[i]) {
 				once = true;
 			}
 		}
