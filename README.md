@@ -19,59 +19,43 @@ Usage: asb <options> <url>
 
 
 ```
-asb$ asb -d 5 http://en.cppreference.com/w/
-> Start and Running 5s (Fri Mar 13 11:18:41 2015)
-  http://en.cppreference.com/w/
+asb$ asb -d 5 https://www.google.co.kr/?gws_rd=ssl
+> Start and Running 5s (2015-03-17.10:24:41)
+  https://www.google.co.kr/?gws_rd=ssl
     10 connections and 2 Threads
-> Duration         : 5201ms
-    Latency        : 24.89ms
-    Requests       : 228
-    Response       : 209
-    Transfer       : 189.64KB
+> Duration         : 5007ms
+    Latency        : 17.09ms
+    Requests       : 580
+    Response       : 293
+    Transfer       : 12.17MB
 > Per seconds
-    Requests/sec   : 52.25
-    Transfer/sec   : 47.41KB
+    Requests/sec   : 73.25
+    Transfer/sec   : 3.04MB
 > Response Status
-    HTTP/1.1 404   : 209
+    HTTP/1.1 200   : 293
+
 
 ```
 
 ```
-asb$ asb -once  http://en.cppreference.com/w/
-HTTP/1.1 404 Not Found
-Date: Sat, 14 Mar 2015 02:02:01 GMT
-Server: Apache
-Accept-Ranges: bytes
-Keep-Alive: timeout=2, max=10
-Connection: Keep-Alive
+asb$ asb -once https://www.google.co.kr/?gws_rd=ssl
+HTTP/1.1 200 OK
+Date: Tue, 17 Mar 2015 14:25:54 GMT
+Expires: -1
+Cache-Control: private, max-age=0
+Content-Type: text/html; charset=ISO-8859-1
+Set-Cookie: PREF=ID=e82da8266e8de950:FF=0:NW=1:TM=1426602354:LM=1426602354:S=xagZL1GoBJZNCDZo; expires=Thu, 16-Mar-2017 14:25:54 GMT; path=/; domain=.google.co.kr
+Set-Cookie: NID=67=q7Mb2Ih2weD7bF9ruv5mAxJUh8VBAXJtRy0bNNpMAyepO-xGTI0prIRfBmzucZICbWaOimge_nv3T8Oqq32Pz02qEAU3K56LpvTvKOnZF_vnMAvym48koALliYO4slze; expires=Wed, 16-Sep-2015 14:25:54 GMT; path=/; domain=.google.co.kr; HttpOnly
+P3P: CP="This is not a P3P policy! See http://www.google.com/support/accounts/bin/answer.py?hl=en&answer=151657 for more info."
+Server: gws
+X-XSS-Protection: 1; mode=block
+X-Frame-Options: SAMEORIGIN
+Alternate-Protocol: 80:quic,p=0.5
+Accept-Ranges: none
+Vary: Accept-Encoding
 Transfer-Encoding: chunked
-Content-Type: text/html; charset=iso-8859-1
 
-1d9
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
-<head>
-<title>404 Not Found</title>
-<style type="text/css"><!--/*--><![CDATA[/*><!--*/
-    body { color: #000000; background-color: #FFFFFF; font-family: sans-serif;}
-/*]]>*/--></style>
-</head>
-
-<body>
-<h1>404 Not Found</h1>
-
-<p>
-The requested URL (
-56
-http://en.cppreference.com:80/w/)
-was not found on this server.
-</p>
-
-</body>
-</html>
-
-0
+8000
+<!doctype html><html itemscope="" itemtype="http://schema.org/WebPage" lang="ko"><head><meta content="/images/google_favicon_128.png" itemprop="image" ................................
 
 ```
