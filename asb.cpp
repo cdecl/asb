@@ -13,6 +13,10 @@
 #include <mutex>
 using namespace std;
 
+#ifdef _DEBUG 
+#define BOOST_ASIO_ENABLE_HANDLER_TRACKING
+#endif
+
 #include "http_client.h"
 #include <boost/format.hpp>
 using boost::str;
@@ -28,11 +32,8 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 {
 	// connection test
 	{
-		boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
-		ctx.set_default_verify_paths();
-
 		boost::asio::io_service io;
-		http_client client(io, ctx);
+		http_client client(io);
 		bool b = client.open(url);
 
 		if (!b) {
@@ -77,10 +78,7 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 			int cons = connections / threads;
 			for (int i = 0; i < cons; ++i) {
 
-				boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
-				ctx.set_default_verify_paths();
-
-				auto c = make_shared<http_client>(*sio, ctx);
+				auto c = make_shared<http_client>(*sio);
 				c->open(url);
 				c->start();
 

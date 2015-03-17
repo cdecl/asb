@@ -17,7 +17,6 @@
 #include <boost/algorithm/string.hpp>
 
 using boost::asio::ip::tcp;
-
 using ms = std::chrono::milliseconds;
 
 struct http_stat
@@ -35,8 +34,8 @@ using StCode = std::map <string, int>;
 class http_client
 {
 public:
-	http_client(boost::asio::io_service& io_service, boost::asio::ssl::context& context)
-		: resolver_(io_service), socket_(io_service, context)
+	http_client(boost::asio::io_service& io_service)
+		: resolver_(io_service), socket_(io_service), ctx_(boost::asio::ssl::context::sslv23), sslsocket_(socket_, ctx_)
 	{
 		next_session = std::bind(&http_client::next_session_s, this);
 	}
@@ -51,30 +50,33 @@ public:
 		bool r = false;
 
 		try {
-			if (!urlparser(url, protocol_, host_, port_, path_)) {
+			if (!urlparser(url)) {
 				throw std::logic_error("error : invalid url");
 			}
 
-			if (protocol_ == "https") {
-				socket_.set_verify_mode(boost::asio::ssl::verify_peer);
-				socket_.set_verify_callback([this](bool preverified, boost::asio::ssl::verify_context& ctx) -> bool
+			if (ssl_) {
+				ctx_.set_default_verify_paths();
+
+				sslsocket_.set_verify_mode(boost::asio::ssl::verify_peer);
+				sslsocket_.set_verify_callback([this](bool preverified, boost::asio::ssl::verify_context& ctx) -> bool
 				{
 					char subject_name[256];
 					X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
 					X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-					//std::cout << "Verifying " << subject_name << "\n";
-
+#ifdef _DEBUG 
+					std::cout << "Verifying: " << subject_name << "\n";
+#endif
 					return true || preverified;
 				});
 			}
 
 			tcp::resolver::query query(host_, port_);
 			auto endpoint_iter = resolver_.resolve(query);
-			boost::asio::connect(socket_.lowest_layer(), endpoint_iter);
+			boost::asio::connect(sslsocket_.lowest_layer(), endpoint_iter);
 
-			if (protocol_ == "https") {
+			if (ssl_) {
 				boost::system::error_code err;
-				socket_.handshake(boost::asio::ssl::stream_base::client, err);
+				sslsocket_.handshake(boost::asio::ssl::stream_base::client, err);
 			}
 
 			r = true;
@@ -86,13 +88,13 @@ public:
 	void close()
 	{
 		if (is_open()) {
-			socket_.lowest_layer().close();
+			sslsocket_.lowest_layer().close();
 		}
 	}
 
 	void cancel()
 	{
-		socket_.lowest_layer().cancel();
+		sslsocket_.lowest_layer().cancel();
 	}
 
 	void reopen()
@@ -100,7 +102,7 @@ public:
 		if (!is_open()) {
 			tcp::resolver::query query(host_, port_);
 			auto endpoint_iter = resolver_.resolve(query);
-			boost::asio::connect(socket_.lowest_layer(), endpoint_iter);
+			boost::asio::connect(sslsocket_.lowest_layer(), endpoint_iter);
 		}
 	}
 
@@ -108,7 +110,7 @@ public:
 	{
 		next_session_s();
 		next_session = [this]{
-			socket_.get_io_service().stop();
+			sslsocket_.get_io_service().stop();
 		};
 	}
 
@@ -119,7 +121,7 @@ public:
 
 	bool is_open()
 	{
-		return socket_.lowest_layer().is_open();
+		return sslsocket_.lowest_layer().is_open();
 	}
 
 	std::stringstream& get_response()
@@ -137,14 +139,8 @@ public:
 		return stcode_;
 	}
 
-	static std::string now()
-	{
-		std::time_t now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
-		string s = std::ctime(&now);
-		return s.substr(0, s.find_last_of('\n'));
-	}
 
-	static bool urlparser(const std::string url, std::string &protocol, std::string &host, std::string &port, std::string &path)
+	bool urlparser(const std::string &url)
 	{
 		bool ret = false;
 
@@ -154,24 +150,32 @@ public:
 		ret = boost::regex_search(url, m, r);
 
 		if (ret) {
-			protocol = boost::algorithm::to_lower_copy(m[1].str());
-			host = m[2].str();
-			port = m[3].str();
+			protocol_ = boost::algorithm::to_lower_copy(m[1].str());
+			host_ = m[2].str();
+			port_ = m[3].str();
 			
-			if (port.empty()) {
-				port = "80";
-				if (protocol == "https") {
-					port = "443";
+			if (port_.empty()) {
+				port_ = "80";
+				ssl_ = false;
+				if (protocol_ == "https") {
+					port_ = "443";
+					ssl_ = true;
 				}
 			}
 
-			path = m[4].str();
-			if (path.empty()) path = "/";
+			path_ = m[4].str();
+			if (path_.empty()) path_ = "/";
 		}
 		
 		return ret;
 	}
 
+	static std::string now()
+	{
+		std::time_t now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
+		string s = std::ctime(&now);
+		return s.substr(0, s.find_last_of('\n'));
+	}
 
 private:
 
@@ -187,8 +191,8 @@ private:
 		build_reqeust();
 
 		t0_ = std::chrono::high_resolution_clock::now();
-		boost::asio::async_write(socket_, request_,
-			[this/*, t0*/](const boost::system::error_code &err, size_t len)
+
+		auto async_write_handler = [this/*, t0*/](const boost::system::error_code &err, size_t len)
 		{
 			if (!err) {
 				std::string sn = now();
@@ -200,7 +204,14 @@ private:
 				close();
 			}
 
-		});
+		};
+
+		if (ssl_) {
+			boost::asio::async_write(sslsocket_, request_, async_write_handler);
+		}
+		else {
+			boost::asio::async_write(socket_, request_, async_write_handler);
+		}
 
 	}
 
@@ -208,11 +219,7 @@ private:
 	{
 		using namespace boost::asio;
 
-		// buuffer initialize 
-		response_.consume(response_.size());
-
-		boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
-			[this /*, t0*/](const boost::system::error_code &err, std::size_t len)
+		auto async_read_until_handler = [this /*, t0*/](const boost::system::error_code &err, std::size_t len)
 		{
 			int nRecv = response_.size();
 			// close 
@@ -225,7 +232,7 @@ private:
 			else {
 				resp_stream_.str("");
 				resp_stream_ << string(buffer_cast<const char*>(response_.data()), response_.size());
-				
+
 				bool chunked = false;
 				// header invalid check, get content-length 
 				int content_length = parse_header(chunked);
@@ -240,7 +247,7 @@ private:
 				if (chunked) {
 					content_length = parse_contents(chunked);
 				}
-				
+
 				if (content_length > 0 && content_length > (int)response_.size()) {
 					async_read_content(content_length - response_.size(), chunked);
 				}
@@ -248,13 +255,24 @@ private:
 					next_session();
 				}
 			}
-		});
+		};
+
+		// buuffer initialize 
+		response_.consume(response_.size());
+
+		if (ssl_) {
+			boost::asio::async_read_until(sslsocket_, response_, "\r\n\r\n", async_read_until_handler);
+		}
+		else {
+			boost::asio::async_read_until(socket_, response_, "\r\n\r\n", async_read_until_handler);
+		}
+
+		
 	}
 
 	void async_read_content(size_t left, bool chunked = false)
 	{
-		boost::asio::async_read(this->socket_, this->response_, boost::asio::transfer_at_least(1),
-			[this, left, chunked](const boost::system::error_code &err, std::size_t len)
+		auto async_read_handler = [this, left, chunked](const boost::system::error_code &err, std::size_t len)
 		{
 			using namespace boost::asio;
 
@@ -293,7 +311,14 @@ private:
 
 				next_session();
 			}
-		});
+		};
+
+		if (ssl_) {
+			boost::asio::async_read(sslsocket_, response_, boost::asio::transfer_at_least(1), async_read_handler);
+		}
+		else {
+			boost::asio::async_read(socket_, response_, boost::asio::transfer_at_least(1), async_read_handler);
+		}
 	}
 
 
@@ -418,12 +443,16 @@ private:
 
 private:
 	tcp::resolver resolver_;
-	//tcp::socket socket_;
-	boost::asio::ssl::stream<tcp::socket> socket_;
+	tcp::socket socket_;
+	boost::asio::ssl::context ctx_;
+	boost::asio::ssl::stream<tcp::socket&> sslsocket_;
+	
+
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
 	std::stringstream resp_stream_;
 
+	bool ssl_;
 	std::string protocol_;
 	std::string host_;
 	std::string path_;
