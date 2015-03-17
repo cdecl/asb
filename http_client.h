@@ -173,8 +173,12 @@ public:
 	static std::string now()
 	{
 		std::time_t now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
-		string s = std::ctime(&now);
-		return s.substr(0, s.find_last_of('\n'));
+		struct tm ttm = *localtime(&now);
+
+		char buf[80];
+		strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &ttm);
+
+		return std::string(buf);
 	}
 
 private:
