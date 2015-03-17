@@ -38,7 +38,7 @@ asb$ asb -d 5 https://www.google.co.kr/?gws_rd=ssl
 ```
 
 ```
-asb$ asb -once https://www.google.co.kr/?gws_rd=ssl
+asb$ asb -test https://www.google.co.kr/?gws_rd=ssl
 HTTP/1.1 200 OK
 Date: Tue, 17 Mar 2015 14:25:54 GMT
 Expires: -1
