@@ -7,9 +7,9 @@ Simple http benchmarking tool
 ```
 Usage: asb <options> <url>
   options:
-    -d <N>    duraction (seconds), default 10
-    -c <N>    connections, default 10
-    -t <N>    threads, default 2
+    -d <N>    duraction (seconds), default : 10
+    -t <N>    threads, default is cpu core(thread::hardware_concurrency()) : 4
+    -c <N>    connections, default is cpu core x 5 : 20
     <url>     support http, https
     -test     run test, response console write, other parameters ignored
 
