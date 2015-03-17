@@ -17,6 +17,23 @@ Usage: asb <options> <url>
 
 ```
 
+```
+asb$ asb -d 5 -c 40 http://localhost
+> Start and Running 5s (2015-03-17.10:35:49)
+  http://localhost
+    40 connections and 2 Threads
+> Duration         : 5007ms
+    Latency        : 0.07ms
+    Requests       : 76434
+    Response       : 75660
+    Transfer       : 68.76MB
+> Per seconds
+    Requests/sec   : 15132.00
+    Transfer/sec   : 13.75MB
+> Response Status
+    HTTP/1.1 200   : 75660
+```
+
 
 ```
 asb$ asb -d 5 https://www.google.co.kr/?gws_rd=ssl
@@ -33,8 +50,6 @@ asb$ asb -d 5 https://www.google.co.kr/?gws_rd=ssl
     Transfer/sec   : 3.04MB
 > Response Status
     HTTP/1.1 200   : 293
-
-
 ```
 
 ```
