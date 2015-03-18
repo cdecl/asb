@@ -26,7 +26,7 @@ using http_client_list = vector < shared_ptr<http_client> > ;
 using io_service_list = vector < shared_ptr<boost::asio::io_service> > ;
 
 void Run(const std::string &url, int connections, int threads, int duration, bool once);
-void Result(uint64_t totial_duration, http_client_list &vCons);
+void Result(int duration, uint64_t total_duration, http_client_list &vCons);
 
 void Run(const std::string &url, int connections, int threads, int duration, bool once)
 {
@@ -100,13 +100,13 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 	}
 
 	auto tm1 = chrono::high_resolution_clock::now();
-	Result(chrono::duration_cast<ms>(tm1 - tm0).count(), vCons);
+	Result(duration, chrono::duration_cast<ms>(tm1 - tm0).count(), vCons);
 
 	vCons.clear();
 }
 
 
-void Result(uint64_t totial_duration, http_client_list &vCons)
+void Result(int duration, uint64_t total_duration, http_client_list &vCons)
 {
 	Stat stat;
 	StCode stcode;
@@ -153,15 +153,15 @@ void Result(uint64_t totial_duration, http_client_list &vCons)
 		return str(boost::format("%0.2lf%s") % dbytes % unit);
 	};
 
-	cout << str(format("> %-17s: %sms") % "Duration" % totial_duration) << endl;
-	cout << str(format("    %-15s: %0.2lfms") % "Latency" % (totial_duration / (double)response)) << endl;
+	cout << str(format("> %-17s: %sms") % "Duration" % total_duration) << endl;
+	cout << str(format("    %-15s: %0.2lfms") % "Latency" % (total_duration / (double)response)) << endl;
 
 	cout << str(format("    %-15s: %ld") % "Requests " % request) << endl;
 	cout << str(format("    %-15s: %ld") % "Response " % response) << endl;
 	cout << str(format("    %-15s: %s") % "Transfer" % fnFormat(bytes)) << endl;
 	cout << "> Per seconds" << endl;
-	cout << str(format("    %-15s: %0.2lf") % "Requests/sec" % (response / (double)(stat.size() - 1))) << endl;
-	cout << str(format("    %-15s: %s") % "Transfer/sec" % fnFormat(bytes / (stat.size() - 1))) << endl;
+	cout << str(format("    %-15s: %0.2lf") % "Requests/sec" % (response / (double)duration)) << endl;
+	cout << str(format("    %-15s: %s") % "Transfer/sec" % fnFormat(bytes / duration)) << endl;
 	cout << "> Response Status" << endl;
 	for (auto &val : stcode) {
 		cout << str(format("    %-15s: %d") % val.first % val.second) << endl;
