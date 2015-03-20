@@ -6,11 +6,13 @@
 #endif
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>  
 #include <thread>
 #include <future>
 #include <functional>
 #include <mutex>
+#include <vector>
 using namespace std;
 
 #ifdef _DEBUG 
@@ -25,15 +27,16 @@ using boost::format;
 using http_client_list = vector < shared_ptr<http_client> > ;
 using io_service_list = vector < shared_ptr<boost::asio::io_service> > ;
 
-void Run(const std::string &url, int connections, int threads, int duration, bool once);
 void Result(int duration, uint64_t total_duration, http_client_list &vCons);
 
-void Run(const std::string &url, int connections, int threads, int duration, bool once)
+
+void Run(const std::string &url, int connections, int threads, int duration, bool once, 
+	const std::string &method, const std::string &data, header_t &headers)
 {
 	// connection test
 	{
 		boost::asio::io_service io;
-		http_client client(io);
+		http_client client(io, method, data, std::move(headers));
 		bool b = client.open(url);
 
 		if (!b) {
@@ -68,7 +71,7 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 		auto sio = make_shared<boost::asio::io_service>();
 		vio.push_back(sio);
 
-		thread tr([sio, url, connections, threads, duration, &vCons, &mtx]()
+		thread tr([sio, url, connections, threads, duration, &method, &data, &headers, &vCons, &mtx]()
 		{
 			boost::asio::deadline_timer t(*sio, boost::posix_time::seconds(duration));
 			t.async_wait([sio](const boost::system::error_code){
@@ -78,7 +81,7 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 			int cons = connections / threads;
 			for (int i = 0; i < cons; ++i) {
 
-				auto c = make_shared<http_client>(*sio);
+				auto c = make_shared<http_client>(*sio, method, data, std::move(headers));
 				c->open(url);
 				c->start();
 
@@ -171,6 +174,14 @@ void Result(int duration, uint64_t total_duration, http_client_list &vCons)
 }
 
 
+std::string read_file(const std::string path)
+{
+	ifstream fin(path.c_str(), ios_base::binary);
+	ostringstream oss;
+	std::copy(istreambuf_iterator<char>(fin), istreambuf_iterator<char>(), ostreambuf_iterator<char>(oss));
+	return oss.str();
+}
+
 void usage(int duration, int threads, int connections)
 {
 	cout << "Usage: asb <options> <url>" << endl;
@@ -178,12 +189,16 @@ void usage(int duration, int threads, int connections)
 	cout << "    -d <N>    duraction (seconds), default : 10" << endl;
 	cout << "    -t <N>    threads, default is core(thread::hardware_concurrency()) : " << threads << endl;
 	cout << "    -c <N>    connections, default is core x 5 : " << connections << endl;
+	cout << "    -m <N>    method, default GET : " << endl;
+	cout << "    -i <N>    input, post data " << endl;
+	cout << "    -f <N>    input, file path " << endl;
+	cout << "    -h <N>    add hedaers, repeat " << endl;
 	cout << "    <url>     support http, https" << endl;
-	cout << "    -test     run test, other parameters ignore " << endl;
+	cout << "    -test     run test " << endl;
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
 	cout << "  example:    asb -once http://www.some_url/" << endl;
-	cout << "  version:    0.5" << endl;
+	cout << "  version:    0.6" << endl;
 }
 
 int main(int argc, char* argv[])
@@ -191,7 +206,10 @@ int main(int argc, char* argv[])
 	int duration = 10;
 	int threads = (int)thread::hardware_concurrency();
 	int connections = threads * 5;
-
+	std::string method = "GET";
+	std::string data;
+	header_t headers;
+	
 	if (argc < 2) {
 		usage(duration, threads, connections);
 		return -1;
@@ -212,6 +230,18 @@ int main(int argc, char* argv[])
 			else if (string("-t") == argv[i]) {
 				threads = std::stoi(argv[++i]);
 			}
+			else if (string("-m") == argv[i]) {
+				method = boost::algorithm::to_upper_copy(string(argv[++i]));
+			}
+			else if (string("-i") == argv[i]) {
+				data = argv[++i];
+			}
+			else if (string("-f") == argv[i]) {
+				data = read_file(argv[++i]);
+			}
+			else if (string("-h") == argv[i]) {
+				headers.push_back(argv[++i]);
+			}
 			else if (string("-test") == argv[i]) {
 				test = true;
 			}
@@ -227,7 +257,7 @@ int main(int argc, char* argv[])
 	}
 	 
 	try {
-		Run(url, connections, threads, duration, test);
+		Run(url, connections, threads, duration, test, method, data, headers);
 	}
 	catch (exception &e) {
 		cout << e.what() << endl;

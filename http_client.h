@@ -29,13 +29,15 @@ struct http_stat
 
 using Stat = std::map <string, http_stat>;
 using StCode = std::map <string, int>;
+using header_t = std::vector < std::string > ;
 
 
 class http_client
 {
 public:
-	http_client(boost::asio::io_service& io_service)
-		: resolver_(io_service), socket_(io_service), ctx_(boost::asio::ssl::context::sslv23), sslsocket_(socket_, ctx_)
+	http_client(boost::asio::io_service& io_service, const string &method, const string &data, header_t headers)
+		: resolver_(io_service), socket_(io_service), ctx_(boost::asio::ssl::context::sslv23), sslsocket_(socket_, ctx_),
+		method_(method), data_(data), headers_(headers)
 	{
 		next_session = std::bind(&http_client::next_session_s, this);
 	}
@@ -436,13 +438,32 @@ private:
 
 	void build_reqeust()
 	{
+		if (method_.empty()) {
+			method_ = "GET";
+		}
+
+		size_t content_length = data_.size();
 		this->request_.consume(this->request_.size());
+
 		std::ostream oss(&request_);
-		oss << "GET http://" << host_ << ":" << port_ << path_ << " HTTP/1.1\r\n";
+		oss << method_ << " " << protocol_ << "://" << host_ << ":" << port_ << path_ << " HTTP/1.1\r\n";
 		oss << "Host: " << host_ << ":" << port_ << "\r\n";
 		oss << "Accept: */*\r\n";
+		
+		if (content_length > 0) {
+			oss << "Content-Length: " << content_length << "\r\n";
+		}
+
+		for (auto h : headers_) {
+			oss << h << "\r\n";
+		}
+
 		oss << "Connection: keep-alive\r\n";
 		oss << "\r\n";
+
+		if (content_length > 0) {
+			oss << data_;
+		}
 	}
 
 private:
@@ -451,7 +472,6 @@ private:
 	boost::asio::ssl::context ctx_;
 	boost::asio::ssl::stream<tcp::socket&> sslsocket_;
 	
-
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
 	std::stringstream resp_stream_;
@@ -461,6 +481,9 @@ private:
 	std::string host_;
 	std::string path_;
 	std::string port_;
+	std::string method_;
+	std::string data_;
+	header_t headers_;
 
 	std::function<void()> next_session;
 

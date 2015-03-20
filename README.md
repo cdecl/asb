@@ -42,14 +42,18 @@ sudo apt-get intall libssl-dev
 Usage: asb <options> <url>
   options:
     -d <N>    duraction (seconds), default : 10
-    -t <N>    threads, default is cpu core(thread::hardware_concurrency()) : 4
-    -c <N>    connections, default is cpu core x 5 : 20
+    -t <N>    threads, default is core(thread::hardware_concurrency()) : 4
+    -c <N>    connections, default is core x 5 : 20
+    -m <N>    method, default GET :
+    -i <N>    input, post data
+    -f <N>    input, file path
+    -h <N>    add hedaers, repeat
     <url>     support http, https
-    -test     run test, response console write, other parameters ignored
+    -test     run test
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
   example:    asb -once http://www.some_url/
-  version:    0.5
+  version:    0.6
 
 ```
 
