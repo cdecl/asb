@@ -2,8 +2,42 @@
 Simple http benchmarking tool 
 > using boost::asio, libssl-dev(openssl) 
 
+-----
 
-**Usage**
+####Boost####
+
+- **Windows** (static build)
+```
+# x86
+bjam.exe toolset=msvc-12.0  link=static runtime-link=static --with-system --with-date_time --with-regex --with-thread -j 4 stage
+
+#   x64
+bjam.exe toolset=msvc-12.0  address-model=64 link=static runtime-link=static --with-system --with-date_time --with-regex --with-thread -j 4 stage
+
+```
+
+- **Ubuntu** (or boost build)
+```
+sudo apt-get intall boost-dev
+```
+
+####OpenSSL ####
+- **Windows** 
+```
+Visual Studio - NuGet Package - The OpenSSL library 
+  
+```
+
+- **Ubuntu**
+```
+sudo apt-get intall libssl-dev
+```
+
+
+----
+##Usage##
+
+
 ```
 Usage: asb <options> <url>
   options:
