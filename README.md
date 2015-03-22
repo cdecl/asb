@@ -1,8 +1,6 @@
 # asb
-Simple http benchmarking tool 
+Http benchmarking tool 
 > using C++, boost::asio, libssl-dev(openssl) 
-
-
 
 
 ###Usage###
