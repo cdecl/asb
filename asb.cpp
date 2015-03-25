@@ -30,14 +30,14 @@ using io_service_list = vector < shared_ptr<boost::asio::io_service> > ;
 void Result(int duration, uint64_t total_duration, http_client_list &vCons);
 
 
-void Run(const std::string &url, int connections, int threads, int duration, bool once, 
+void Run(const std::string &url, const std::string &xurl, int connections, int threads, int duration, bool once,
 	const std::string &method, const std::string &data, header_t &headers)
 {
 	// connection test
 	{
 		boost::asio::io_service io;
 		http_client client(io, method, data, std::move(headers));
-		bool b = client.open(url);
+		bool b = client.open(url, xurl);
 
 		if (!b) {
 			cout << "> Connection error OR Invalid url" << endl;
@@ -71,7 +71,7 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 		auto sio = make_shared<boost::asio::io_service>();
 		vio.push_back(sio);
 
-		thread tr([sio, url, connections, threads, duration, &method, &data, &headers, &vCons, &mtx]()
+		thread tr([sio, url, xurl, connections, threads, duration, &method, &data, &headers, &vCons, &mtx]()
 		{
 			boost::asio::deadline_timer t(*sio, boost::posix_time::seconds(duration));
 			t.async_wait([sio](const boost::system::error_code){
@@ -82,7 +82,7 @@ void Run(const std::string &url, int connections, int threads, int duration, boo
 			for (int i = 0; i < cons; ++i) {
 
 				auto c = make_shared<http_client>(*sio, method, data, std::move(headers));
-				c->open(url);
+				c->open(url, xurl);
 				c->start();
 
 				{
@@ -193,12 +193,13 @@ void usage(int duration, int threads, int connections)
 	cout << "    -i <N>    input, post data " << endl;
 	cout << "    -f <N>    input, file path " << endl;
 	cout << "    -h <N>    add hedaers, repeat " << endl;
+	cout << "    -x <N>    proxy url" << endl;
 	cout << "    <url>     support http, https" << endl;
 	cout << "    -test     run test " << endl;
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
 	cout << "  example:    asb -once http://www.some_url/" << endl;
-	cout << "  version:    0.6" << endl;
+	cout << "  version:    " << http_client::ver() << endl;
 }
 
 int main(int argc, char* argv[])
@@ -217,6 +218,7 @@ int main(int argc, char* argv[])
 	
 	bool test = false;
 	std::string url;
+	std::string xurl;
 
 	try {
 		int i = 1;
@@ -242,6 +244,9 @@ int main(int argc, char* argv[])
 			else if (string("-h") == argv[i]) {
 				headers.push_back(argv[++i]);
 			}
+			else if (string("-x") == argv[i]) {
+				xurl = argv[++i];
+			}
 			else if (string("-test") == argv[i]) {
 				test = true;
 			}
@@ -257,7 +262,7 @@ int main(int argc, char* argv[])
 	}
 	 
 	try {
-		Run(url, connections, threads, duration, test, method, data, headers);
+		Run(url, xurl, connections, threads, duration, test, method, data, headers);
 	}
 	catch (exception &e) {
 		cout << e.what() << endl;

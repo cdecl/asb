@@ -47,14 +47,43 @@ public:
 		close();
 	}
 
-	bool open(const std::string& url)
+	static std::string ver()
+	{
+		return "0.7";
+	}
+
+	bool open(const std::string& url, const std::string& proxy = "")
 	{
 		bool r = false;
 
 		try {
-			if (!urlparser(url)) {
-				throw std::logic_error("error : invalid url");
+			bool xssl = false;
+			proxy_ = !proxy.empty();
+
+			if (proxy_) {
+				if (!urlparser(proxy)) {
+					throw std::logic_error("error : invalid proxy url");
+				}
+
+				xhost_ = host_;
+				xport_ = port_;
+				xssl = ssl_;
+
+				if (!urlparser(url)) {
+					throw std::logic_error("error : invalid url");
+				}
+
+				ssl_ = xssl;
 			}
+			else {
+				if (!urlparser(url)) {
+					throw std::logic_error("error : invalid url");
+				}
+
+				xhost_ = host_;
+				xport_ = port_;
+			}
+
 
 			if (ssl_) {
 				ctx_.set_default_verify_paths();
@@ -72,7 +101,7 @@ public:
 				});
 			}
 
-			tcp::resolver::query query(host_, port_);
+			tcp::resolver::query query(xhost_, xport_);
 			auto endpoint_iter = resolver_.resolve(query);
 			boost::asio::connect(sslsocket_.lowest_layer(), endpoint_iter);
 
@@ -102,9 +131,14 @@ public:
 	void reopen()
 	{
 		if (!is_open()) {
-			tcp::resolver::query query(host_, port_);
+			tcp::resolver::query query(xhost_, xport_);
 			auto endpoint_iter = resolver_.resolve(query);
 			boost::asio::connect(sslsocket_.lowest_layer(), endpoint_iter);
+
+			if (ssl_) {
+				boost::system::error_code err;
+				sslsocket_.handshake(boost::asio::ssl::stream_base::client, err);
+			}
 		}
 	}
 
@@ -155,14 +189,11 @@ public:
 			protocol_ = boost::algorithm::to_lower_copy(m[1].str());
 			host_ = m[2].str();
 			port_ = m[3].str();
-			
+
+			ssl_ = (protocol_ == "https") ? true : false;
+
 			if (port_.empty()) {
-				port_ = "80";
-				ssl_ = false;
-				if (protocol_ == "https") {
-					port_ = "443";
-					ssl_ = true;
-				}
+				port_ = (!ssl_) ? "80" : "443";
 			}
 
 			path_ = m[4].str();
@@ -446,7 +477,15 @@ private:
 		this->request_.consume(this->request_.size());
 
 		std::ostream oss(&request_);
-		oss << method_ << " " << protocol_ << "://" << host_ << ":" << port_ << path_ << " HTTP/1.1\r\n";
+
+		if (proxy_) {
+			// absoluteURI
+			oss << method_ << " " << protocol_ << "://" << host_ << ":" << port_ << path_ << " HTTP/1.1\r\n";  
+		}
+		else {
+			//abs_path
+			oss << method_ << " " << path_ << " HTTP/1.1\r\n";	
+		}
 		oss << "Host: " << host_ << ":" << port_ << "\r\n";
 		oss << "Accept: */*\r\n";
 		
@@ -458,12 +497,14 @@ private:
 			oss << h << "\r\n";
 		}
 
+		oss << "User-Agent: asb/" << ver() << "\r\n" << endl;
 		oss << "Connection: keep-alive\r\n";
 		oss << "\r\n";
 
 		if (content_length > 0) {
 			oss << data_;
 		}
+
 	}
 
 private:
@@ -476,11 +517,15 @@ private:
 	boost::asio::streambuf response_;
 	std::stringstream resp_stream_;
 
+	std::string xhost_;
+	std::string xport_;
+
+	bool proxy_;
 	bool ssl_;
 	std::string protocol_;
 	std::string host_;
-	std::string path_;
 	std::string port_;
+	std::string path_;
 	std::string method_;
 	std::string data_;
 	header_t headers_;
