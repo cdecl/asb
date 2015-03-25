@@ -16,13 +16,14 @@ Usage: asb <options> <url>
     -i <N>    input, post data
     -f <N>    input, file path
     -h <N>    add hedaers, repeat
+    -x <N>    proxy url
     <url>     support http, https
     -test     run test
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
   example:    asb -once http://www.some_url/
-  version:    0.6
-
+  version:    0.7
+  
 ```
 
 **Example**

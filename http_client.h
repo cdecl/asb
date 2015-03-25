@@ -497,7 +497,7 @@ private:
 			oss << h << "\r\n";
 		}
 
-		oss << "User-Agent: asb/" << ver() << "\r\n" << endl;
+		//oss << "User-Agent: asb/" << ver() << "\r\n" << endl;
 		oss << "Connection: keep-alive\r\n";
 		oss << "\r\n";
 
