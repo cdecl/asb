@@ -191,16 +191,16 @@ void usage(int duration, int threads, int connections)
 {
 	cout << "Usage: asb <options> <url>" << endl;
 	cout << "  options:" << endl;
-	cout << "    -d <N>    duraction (seconds), default : 10" << endl;
-	cout << "    -t <N>    threads, default is core(thread::hardware_concurrency()) : " << threads << endl;
-	cout << "    -c <N>    connections, default is core x 5 : " << connections << endl;
+	cout << "    -d <N>    duraction(sec), default : 10" << endl;
+	cout << "    -t <N>    threads, default core(thread::hardware_concurrency()) : " << threads << endl;
+	cout << "    -c <N>    connections, default core x 10 : " << connections << endl;
 	cout << "    -m <N>    method, default GET : " << endl;
-	cout << "    -i <N>    input, post data " << endl;
-	cout << "    -f <N>    input, file path " << endl;
-	cout << "    -h <N>    add hedaers, repeat " << endl;
+	cout << "    -i <N>    POST input data " << endl;
+	cout << "    -f <N>    POST input data, file path " << endl;
+	cout << "    -h <N>    add header, repeat " << endl;
 	cout << "    -x <N>    proxy url" << endl;
-	cout << "    <url>     support http, https" << endl;
-	cout << "    -test     run test " << endl;
+	cout << "    <url>     url" << endl;
+	cout << "    -test     run test, output response header and body" << endl;
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
 	cout << "  example:    asb -test http://www.some_url/" << endl;
@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
 {
 	int duration = 10;
 	int threads = (int)thread::hardware_concurrency();
-	int connections = threads * 5;
+	int connections = threads * 10;
 	std::string method = "GET";
 	std::string data;
 	header_t headers;

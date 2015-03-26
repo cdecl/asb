@@ -9,16 +9,16 @@ Http benchmarking tool
 ```
 Usage: asb <options> <url>
   options:
-    -d <N>    duraction (seconds), default : 10
-    -t <N>    threads, default is core(thread::hardware_concurrency()) : 4
-    -c <N>    connections, default is core x 5 : 20
+    -d <N>    duraction(sec), default : 10
+    -t <N>    threads, default core(thread::hardware_concurrency()) : ?
+    -c <N>    connections, default core x 10 : ?
     -m <N>    method, default GET :
-    -i <N>    input, post data
-    -f <N>    input, file path
-    -h <N>    add hedaers, repeat
+    -i <N>    POST input data
+    -f <N>    POST input data, file path
+    -h <N>    add header, repeat
     -x <N>    proxy url
-    <url>     support http, https
-    -test     run test
+    <url>     url
+    -test     run test, output response header and body
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
   example:    asb -test http://www.some_url/
