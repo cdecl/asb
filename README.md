@@ -22,7 +22,7 @@ Usage: asb <options> <url>
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
   example:    asb -once http://www.some_url/
-  version:    0.7
+  version:    0.8
   
 ```
 
