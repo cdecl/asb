@@ -49,7 +49,7 @@ public:
 
 	static std::string ver()
 	{
-		return "0.7";
+		return "0.8";
 	}
 
 	bool open(const std::string& url, const std::string& proxy = "")

@@ -73,13 +73,8 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 
 		thread tr([sio, url, xurl, connections, threads, duration, &method, &data, &headers, &vCons, &mtx]()
 		{
-			boost::asio::deadline_timer t(*sio, boost::posix_time::seconds(duration));
-			t.async_wait([sio](const boost::system::error_code){
-				sio->stop();
-			});
-
 			int cons = connections / threads;
-			for (int i = 0; i < cons; ++i) {
+			for (int i = 0; i < cons && !sio->stopped(); ++i) {
 
 				auto c = make_shared<http_client>(*sio, method, data, std::move(headers));
 				c->open(url, xurl);
@@ -96,6 +91,16 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 
 		vThread.push_back(move(tr));
 	}
+
+	boost::asio::io_service io;
+	boost::asio::deadline_timer t(io, boost::posix_time::seconds(duration));
+	t.async_wait([&vio, &vCons](const boost::system::error_code)
+	{
+		for (auto &io : vio) {
+			io->stop();
+		}
+	});
+	io.run();
 
 	// thread join
 	for (auto &t : vThread) {
@@ -198,7 +203,7 @@ void usage(int duration, int threads, int connections)
 	cout << "    -test     run test " << endl;
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
-	cout << "  example:    asb -once http://www.some_url/" << endl;
+	cout << "  example:    asb -test http://www.some_url/" << endl;
 	cout << "  version:    " << http_client::ver() << endl;
 }
 

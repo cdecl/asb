@@ -21,8 +21,8 @@ Usage: asb <options> <url>
     -test     run test
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
-  example:    asb -once http://www.some_url/
-  version:    0.7
+  example:    asb -test http://www.some_url/
+  version:    0.8
   
 ```
 
