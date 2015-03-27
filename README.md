@@ -1,10 +1,49 @@
 # asb
-Http benchmarking tool 
-> using C++, boost::asio, libssl-dev(openssl) 
+Http benchmarking and load test tool for windows, posix 
+
+> C++11, boost::asio, openssl
 
 
-###Usage###
 
+##Build##
+
+###Ubuntu###
+
+```sh
+
+# build tool 
+sudo apt-get install build-essential 
+
+# boost - thread, regex, system, date-time
+sudo apt-get install libboost-thread-dev libboost-regex-dev libb oost-system-dev libboost-date-time-dev
+
+# openssl 
+sudo apt-get install libssl-dev
+
+git clone https://github.com/cdecl/asb.git
+cd asb 
+
+# bulid
+make 
+
+```
+
+###Windows###
+> Visual C++ 2013
+
+```
+
+# boost download & build 
+# win32
+bjam.exe toolset=msvc-12.0 link=static runtime-link=static --with-system --with-date_time --with-regex --with-thread -j 4 stage
+# x64
+bjam.exe toolset=msvc-12.0 address-model=64 link=static runtime-link=static --with-system --with-date_time --with-regex --with-thread -j 4 stage
+
+## openssl - NuGet package install  
+
+```
+
+##Usage##
 
 ```
 Usage: asb <options> <url>
