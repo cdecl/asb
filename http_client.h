@@ -27,15 +27,15 @@ struct http_stat
 	uint64_t transfer_bytes;
 };
 
-using Stat = std::map <string, http_stat>;
-using StCode = std::map <string, int>;
-using header_t = std::vector < std::string > ;
+using Stat = std::map <std::string, http_stat>;
+using StCode = std::map <std::string, int>;
+using header_t = std::vector < std::string >;
 
 
 class http_client
 {
 public:
-	http_client(boost::asio::io_service& io_service, const string &method, const string &data, header_t headers)
+	http_client(boost::asio::io_service& io_service, const std::string &method, const std::string &data, header_t headers)
 		: resolver_(io_service), socket_(io_service), ctx_(boost::asio::ssl::context::sslv23), sslsocket_(socket_, ctx_),
 		method_(method), data_(data), headers_(headers)
 	{
@@ -94,7 +94,7 @@ public:
 					char subject_name[256];
 					X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
 					X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-#ifdef _DEBUG 
+#ifdef BOOST_ASIO_ENABLE_HANDLER_TRACKING 
 					std::cout << "Verifying: " << subject_name << "\n";
 #endif
 					return true || preverified;
@@ -176,6 +176,19 @@ public:
 	}
 
 
+	static std::string now()
+	{
+		std::time_t now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
+		struct tm ttm = *localtime(&now);
+
+		char buf[80];
+		strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &ttm);
+
+		return std::string(buf);
+	}
+
+private:
+
 	bool urlparser(const std::string &url)
 	{
 		bool ret = false;
@@ -199,22 +212,10 @@ public:
 			path_ = m[4].str();
 			if (path_.empty()) path_ = "/";
 		}
-		
+
 		return ret;
 	}
 
-	static std::string now()
-	{
-		std::time_t now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
-		struct tm ttm = *localtime(&now);
-
-		char buf[80];
-		strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &ttm);
-
-		return std::string(buf);
-	}
-
-private:
 
 	void next_session_s()
 	{
@@ -268,7 +269,7 @@ private:
 			}
 			else {
 				resp_stream_.str("");
-				resp_stream_ << string(buffer_cast<const char*>(response_.data()), response_.size());
+				resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
 
 				bool chunked = false;
 				// header invalid check, get content-length 
@@ -304,7 +305,7 @@ private:
 			boost::asio::async_read_until(socket_, response_, "\r\n\r\n", async_read_until_handler);
 		}
 
-		
+
 	}
 
 	void async_read_content(size_t left, bool chunked = false)
@@ -317,7 +318,7 @@ private:
 				std::string sn = now();
 				stat_[sn].transfer_bytes += len;
 
-				std::string s = string(buffer_cast<const char*>(response_.data()), response_.size());
+				std::string s = std::string(buffer_cast<const char*>(response_.data()), response_.size());
 				resp_stream_ << s.substr(s.length() - len);
 
 
@@ -366,22 +367,22 @@ private:
 
 		try {
 			std::istream response_stream(&response_);
-			
-			string header;
+
+			std::string header;
 			getline(response_stream, header);
 
-			vector<string> vs;
+			vector<std::string> vs;
 			split(vs, header, boost::is_any_of(" "), token_compress_on);
 
 			if (vs.size() < 3) {
 				std::ostringstream oss;
-				oss << "Invalid http hedaer 1 line, vs.size() :  " << vs.size() << endl;
+				oss << "Invalid http header 1 line, vs.size() :  " << vs.size() << endl;
 				throw logic_error(oss.str());
 			}
 
-			string http_version = vs[0];
-			string status_code = vs[1];
-			string status_msg = vs[2];
+			std::string http_version = vs[0];
+			std::string status_code = vs[1];
+			std::string status_msg = vs[2];
 
 			if (!response_stream || http_version.substr(0, 5) != "HTTP/")
 			{
@@ -392,23 +393,23 @@ private:
 			stcode_[http_version + " " + status_code]++;
 
 			while (getline(response_stream, header) && header != "\r") {
-				string::size_type pos = header.find("Content-Length");
-				if (pos != string::npos) {
+				std::string::size_type pos = header.find("Content-Length");
+				if (pos != std::string::npos) {
 					pos = header.find(":");
 					content_length = std::stoi(header.substr(pos + 1));
 				}
 
 				// Transfer-Encoding : chunked
 				pos = header.find("Transfer-Encoding");
-				if (pos != string::npos) {
+				if (pos != std::string::npos) {
 					pos = header.find(":");
 
-					if (string::npos != header.substr(pos + 1).find("chunked")) {
+					if (std::string::npos != header.substr(pos + 1).find("chunked")) {
 						chunked = true;
 					}
 				}
 			}
-			
+
 		}
 		catch (exception &) {
 			content_length = -1;
@@ -427,17 +428,17 @@ private:
 			std::istream response_stream(&response_);
 
 			if (chunked) {
-				string header;
+				std::string header;
 
 				while (true) {
 					if (response_.size() == 0) break;
 
-					string s = std::string(buffer_cast<const char*>(response_.data()), response_.size());
+					std::string s = std::string(buffer_cast<const char*>(response_.data()), response_.size());
 
-					string::size_type pos = s.find("\n");
-					if (string::npos != pos) {
+					std::string::size_type pos = s.find("\n");
+					if (std::string::npos != pos) {
 						content_length = stoi(s.substr(0, pos), nullptr, 16);
-						
+
 						if (content_length == 0) {
 							response_.consume(response_.size());
 							break;
@@ -480,15 +481,15 @@ private:
 
 		if (proxy_) {
 			// absoluteURI
-			oss << method_ << " " << protocol_ << "://" << host_ << ":" << port_ << path_ << " HTTP/1.1\r\n";  
+			oss << method_ << " " << protocol_ << "://" << host_ << ":" << port_ << path_ << " HTTP/1.1\r\n";
 		}
 		else {
 			//abs_path
-			oss << method_ << " " << path_ << " HTTP/1.1\r\n";	
+			oss << method_ << " " << path_ << " HTTP/1.1\r\n";
 		}
 		oss << "Host: " << host_ << ":" << port_ << "\r\n";
 		oss << "Accept: */*\r\n";
-		
+
 		if (content_length > 0) {
 			oss << "Content-Length: " << content_length << "\r\n";
 		}
@@ -512,7 +513,7 @@ private:
 	tcp::socket socket_;
 	boost::asio::ssl::context ctx_;
 	boost::asio::ssl::stream<tcp::socket&> sslsocket_;
-	
+
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
 	std::stringstream resp_stream_;
