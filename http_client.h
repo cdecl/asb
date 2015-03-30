@@ -94,7 +94,7 @@ public:
 					char subject_name[256];
 					X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
 					X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-#ifdef _DEBUG 
+#ifdef BOOST_ASIO_ENABLE_HANDLER_TRACKING 
 					std::cout << "Verifying: " << subject_name << "\n";
 #endif
 					return true || preverified;
@@ -176,6 +176,19 @@ public:
 	}
 
 
+	static std::string now()
+	{
+		std::time_t now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
+		struct tm ttm = *localtime(&now);
+
+		char buf[80];
+		strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &ttm);
+
+		return std::string(buf);
+	}
+
+private:
+
 	bool urlparser(const std::string &url)
 	{
 		bool ret = false;
@@ -199,22 +212,10 @@ public:
 			path_ = m[4].str();
 			if (path_.empty()) path_ = "/";
 		}
-		
+
 		return ret;
 	}
 
-	static std::string now()
-	{
-		std::time_t now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
-		struct tm ttm = *localtime(&now);
-
-		char buf[80];
-		strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &ttm);
-
-		return std::string(buf);
-	}
-
-private:
 
 	void next_session_s()
 	{
@@ -375,7 +376,7 @@ private:
 
 			if (vs.size() < 3) {
 				std::ostringstream oss;
-				oss << "Invalid http hedaer 1 line, vs.size() :  " << vs.size() << endl;
+				oss << "Invalid http header 1 line, vs.size() :  " << vs.size() << endl;
 				throw logic_error(oss.str());
 			}
 
