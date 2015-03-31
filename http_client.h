@@ -49,7 +49,7 @@ public:
 
 	static std::string ver()
 	{
-		return "0.8";
+		return "0.9";
 	}
 
 	bool open(const std::string& url, const std::string& proxy = "")
@@ -269,7 +269,7 @@ private:
 			}
 			else {
 				resp_stream_.str("");
-				resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+				resp_stream_ << boost::algorithm::replace_all_copy(std::string(buffer_cast<const char*>(response_.data()), len), "\r\n", "\n");
 
 				bool chunked = false;
 				// header invalid check, get content-length 
@@ -308,6 +308,67 @@ private:
 
 	}
 
+	int parse_header(bool &chunked)
+	{
+		using std::string;
+		using namespace boost::algorithm;
+		int content_length = 0;
+
+		try {
+			std::istream response_stream(&response_);
+
+			std::string header;
+			getline(response_stream, header);
+
+			std::vector<std::string> vs;
+			split(vs, header, boost::is_any_of(" "), token_compress_on);
+
+			if (vs.size() < 3) {
+				std::ostringstream oss;
+				oss << "Invalid http header 1 line, vs.size() :  " << vs.size() << std::endl;
+				throw std::logic_error(oss.str());
+			}
+
+			std::string http_version = vs[0];
+			std::string status_code = vs[1];
+			std::string status_msg = vs[2];
+
+			if (!response_stream || http_version.substr(0, 5) != "HTTP/")
+			{
+				throw std::logic_error("Invalid http header version");
+			}
+
+			// status_code statistics
+			stcode_[http_version + " " + status_code]++;
+
+			while (getline(response_stream, header) && header != "\r") {
+				string::size_type pos = header.find("Content-Length");
+				if (pos != string::npos) {
+					pos = header.find(":");
+					content_length = std::stoi(header.substr(pos + 1));
+				}
+
+				// Transfer-Encoding : chunked
+				pos = header.find("Transfer-Encoding");
+				if (pos != string::npos) {
+					pos = header.find(":");
+
+					if (string::npos != header.substr(pos + 1).find("chunked")) {
+						chunked = true;
+					}
+				}
+			}
+
+		}
+		catch (std::exception &) {
+			content_length = -1;
+			//cout << e.what() << endl;
+		}
+
+		return content_length;
+	}
+
+
 	void async_read_content(size_t left, bool chunked = false)
 	{
 		auto async_read_handler = [this, left, chunked](const boost::system::error_code &err, std::size_t len)
@@ -318,24 +379,36 @@ private:
 				std::string sn = now();
 				stat_[sn].transfer_bytes += len;
 
-				std::string s = std::string(buffer_cast<const char*>(response_.data()), response_.size());
-				resp_stream_ << s.substr(s.length() - len);
-
 
 				if (chunked) {
-					int content_length = parse_contents(chunked);
-					if (content_length > 0) {
-						async_read_content(content_length);
+					if (left > len) {
+						resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+						response_.consume(response_.size());
+						async_read_content(left - len, chunked);
 					}
 					else {
-						next_session();
+						resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), left);
+						response_.consume(left);
+						int content_length = parse_contents(chunked);
+
+						if (content_length > 0) {
+							async_read_content(content_length, chunked);
+						}
+						else {
+							next_session();
+						}
 					}
 				}
 				else {
 					if (left > len) {
+						resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+						response_.consume(response_.size());
 						async_read_content(left - len);
 					}
 					else {
+						resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+						response_.consume(response_.size());
+
 						parse_contents();
 						next_session();
 					}
@@ -359,111 +432,50 @@ private:
 		}
 	}
 
-
-	int parse_header(bool &chunked)
-	{
-		using namespace boost::algorithm;
-		int content_length = 0;
-
-		try {
-			std::istream response_stream(&response_);
-
-			std::string header;
-			getline(response_stream, header);
-
-			vector<std::string> vs;
-			split(vs, header, boost::is_any_of(" "), token_compress_on);
-
-			if (vs.size() < 3) {
-				std::ostringstream oss;
-				oss << "Invalid http header 1 line, vs.size() :  " << vs.size() << endl;
-				throw logic_error(oss.str());
-			}
-
-			std::string http_version = vs[0];
-			std::string status_code = vs[1];
-			std::string status_msg = vs[2];
-
-			if (!response_stream || http_version.substr(0, 5) != "HTTP/")
-			{
-				throw logic_error("Invalid http header version");
-			}
-
-			// status_code statistics
-			stcode_[http_version + " " + status_code]++;
-
-			while (getline(response_stream, header) && header != "\r") {
-				std::string::size_type pos = header.find("Content-Length");
-				if (pos != std::string::npos) {
-					pos = header.find(":");
-					content_length = std::stoi(header.substr(pos + 1));
-				}
-
-				// Transfer-Encoding : chunked
-				pos = header.find("Transfer-Encoding");
-				if (pos != std::string::npos) {
-					pos = header.find(":");
-
-					if (std::string::npos != header.substr(pos + 1).find("chunked")) {
-						chunked = true;
-					}
-				}
-			}
-
-		}
-		catch (exception &) {
-			content_length = -1;
-			//cout << e.what() << endl;
-		}
-
-		return content_length;
-	}
-
 	int parse_contents(bool chunked = false)
 	{
 		using namespace boost::asio;
 		int content_length = 0;
 
 		try {
-			std::istream response_stream(&response_);
-
 			if (chunked) {
-				std::string header;
-
 				while (true) {
 					if (response_.size() == 0) break;
 
-					std::string s = std::string(buffer_cast<const char*>(response_.data()), response_.size());
+					string s;
+					std::istream response_stream(&response_);
+					getline(response_stream, s);
 
-					std::string::size_type pos = s.find("\n");
-					if (std::string::npos != pos) {
-						content_length = stoi(s.substr(0, pos), nullptr, 16);
-
-						if (content_length == 0) {
-							response_.consume(response_.size());
-							break;
-						}
+					if (s == "\r") {
+						getline(response_stream, s);
 					}
 
-					// content_length + "\r\n"
-					if ((content_length) <= (int)response_.size()) {
-						if (content_length) { content_length += 2; }
+					content_length = stoi(s, nullptr, 16);
 
+					if (content_length == 0) {
+						resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+						response_.consume(response_.size());
+						break;
+					}
+
+					if (content_length <= (int)response_.size()) {
+						resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), content_length);
 						response_.consume(content_length);
 					}
 					else {
+						content_length -= (int)response_.size();
+
+						resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+						response_.consume(response_.size());
 						break;
 					}
 				}
 			}
 			else {
-				std::string s;
-				while (!response_stream.eof()) {
-					std::getline(response_stream, s);
-				}
+				//// Content-Length : done 
 			}
 		}
-		catch (exception &) {}
+		catch (std::exception &) {}
 
 		return content_length;
 	}
