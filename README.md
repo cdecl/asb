@@ -61,7 +61,7 @@ Usage: asb <options> <url>
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
   example:    asb -test http://www.some_url/
-  version:    0.9
+  version:    1.0.0
   
 ```
 
