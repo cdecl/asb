@@ -1,6 +1,6 @@
 CC = g++
 CC_FLAGS = -std=c++11 -Wall -O2
-LD_LIBS = -pthread -L/usr/lib/x86_64-linux-gnu -lboost_system -lboost_regex -lssl -lcrypto
+LD_LIBS = -pthread -lboost_system -lboost_regex -lssl -lcrypto
 # -ltcmalloc_minimal 
 
 EXEC = asb
