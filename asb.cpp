@@ -63,20 +63,23 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 
 	std::mutex mtx;
 	http_client_list vCons;
-	io_service_list vio;
+
+	boost::asio::io_service io;
+	boost::asio::deadline_timer t(io, boost::posix_time::seconds(duration));
+	t.async_wait([&io](const boost::system::error_code)
+	{
+		io.stop();
+	});
 
 	auto tm0 = chrono::high_resolution_clock::now();
 	for (int i = 0; i < threads; ++i) {
 
-		auto sio = make_shared<boost::asio::io_service>();
-		vio.push_back(sio);
-
-		thread tr([sio, url, xurl, connections, threads, duration, &method, &data, &headers, &vCons, &mtx]()
+		thread tr([&io, url, xurl, connections, threads, duration, &method, &data, &headers, &vCons, &mtx]()
 		{
 			int cons = connections / threads;
-			for (int i = 0; i < cons && !sio->stopped(); ++i) {
+			for (int i = 0; i < cons && !io.stopped(); ++i) {
 
-				auto c = make_shared<http_client>(*sio, method, data, std::move(headers));
+				auto c = make_shared<http_client>(io, method, data, std::move(headers));
 				c->open(url, xurl);
 				c->start();
 
@@ -86,21 +89,11 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 				}
 			}
 			
-			sio->run();
+			io.run();
 		});
 
 		vThread.push_back(move(tr));
 	}
-
-	boost::asio::io_service io;
-	boost::asio::deadline_timer t(io, boost::posix_time::seconds(duration));
-	t.async_wait([&vio, &vCons](const boost::system::error_code)
-	{
-		for (auto &io : vio) {
-			io->stop();
-		}
-	});
-	io.run();
 
 	// thread join
 	for (auto &t : vThread) {
