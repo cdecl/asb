@@ -189,15 +189,15 @@ void http_client_loop::async_write()
 	auto async_write_handler = [this/*, t0*/](const boost::system::error_code &err, size_t len)
 	{
 		if (!err) {
+			//async_read_header();
+
 			std::string sn = now();
 			stat_[sn].request++;
 			stat_[sn].transfer_bytes += len;
-
 		}
 		else {
 			close();
 		}
-
 	};
 
 	if (ssl_) {
@@ -212,11 +212,10 @@ void http_client_loop::async_write()
 void http_client_loop::async_read_header()
 {
 	using namespace boost::asio;
+	using namespace std::chrono;
 
 	auto async_read_until_handler = [this /*, t0*/](const boost::system::error_code &err, std::size_t len)
 	{
-		int nRecv = response_.size();
-		// close 
 		if (err) {
 			close();
 			reopen();
@@ -231,15 +230,18 @@ void http_client_loop::async_read_header()
 			// header invalid check, get content-length 
 			int content_length = parse_header(chunked);
 
+			if (chunked) {
+				content_length = parse_contents(chunked);
+			}
+
 			// logging
 			if (content_length >= 0) {
 				std::string sn = now();
 				stat_[sn].response++;
-				stat_[sn].transfer_bytes += nRecv;
-			}
+				stat_[sn].transfer_bytes += len + content_length;
 
-			if (chunked) {
-				content_length = parse_contents(chunked);
+				auto t1 = high_resolution_clock::now();
+				stat_[sn].duration += std::chrono::duration_cast<ms>(t1 - t0_).count();
 			}
 
 			if (content_length > 0 && content_length > (int)response_.size()) {

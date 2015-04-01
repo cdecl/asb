@@ -21,10 +21,11 @@ using ms = std::chrono::milliseconds;
 
 struct http_stat
 {
-	http_stat() : request(0), response(0), transfer_bytes(0) {}
+	http_stat() : request(0), response(0), transfer_bytes(0), duration(0) {}
 	uint64_t request;
 	uint64_t response;
 	uint64_t transfer_bytes;
+	uint64_t duration;
 };
 
 using Stat = std::map <std::string, http_stat>;
