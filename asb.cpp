@@ -19,12 +19,12 @@ using namespace std;
 #define BOOST_ASIO_ENABLE_HANDLER_TRACKING
 #endif
 
-#include "http_client.h"
+#include "http_client_loop.h"
 #include <boost/format.hpp>
 using boost::str;
 using boost::format;
 
-using http_client_list = vector < shared_ptr<http_client> > ;
+using http_client_list = vector < shared_ptr<http_client_loop> > ;
 using io_service_list = vector < shared_ptr<boost::asio::io_service> > ;
 
 void Result(int duration, uint64_t total_duration, http_client_list &vCons);
@@ -36,7 +36,7 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 	// connection test
 	{
 		boost::asio::io_service io;
-		http_client client(io, method, data, std::move(headers));
+		http_client_loop client(io, method, data, std::move(headers));
 		bool b = client.open(url, xurl);
 
 		if (!b) {
@@ -53,7 +53,7 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 		}
 	}
 	
-	cout << str(format("> Start and Running %ds (%s)") % duration % http_client::now()) << endl;
+	cout << str(format("> Start and Running %ds (%s)") % duration % http_client_loop::now()) << endl;
 	cout << "  " << url << endl;
 	cout << str(format("    %d connections and %d Threads ")
 		% connections % threads) << endl;
@@ -79,7 +79,7 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 			int cons = connections / threads;
 			for (int i = 0; i < cons && !io.stopped(); ++i) {
 
-				auto c = make_shared<http_client>(io, method, data, std::move(headers));
+				auto c = make_shared<http_client_loop>(io, method, data, std::move(headers));
 				c->open(url, xurl);
 				c->start();
 
@@ -197,7 +197,7 @@ void usage(int duration, int threads, int connections)
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
 	cout << "  example:    asb -test http://www.some_url/" << endl;
-	cout << "  version:    " << http_client::ver() << endl;
+	cout << "  version:    " << http_client_loop::ver() << endl;
 }
 
 int main(int argc, char* argv[])
