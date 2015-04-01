@@ -109,28 +109,31 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 
 void Result(int duration, uint64_t total_duration, http_client_list &vCons)
 {
-	Stat stat;
-	StCode stcode;
+	Stat statistics;
+	StCode status_codes;
 	uint64_t request = 0;
 	uint64_t response = 0;
 	uint64_t bytes = 0;
+	uint64_t duration_tot = 0;
 
 	for (auto &c : vCons) {
 		for (auto &val : c->get_stat()) {
-			stat[val.first].request += val.second.request;					// count
-			stat[val.first].response += val.second.response;				// count
-			stat[val.first].transfer_bytes += val.second.transfer_bytes;	// transfer  data size
+			statistics[val.first].request += val.second.request;					// count
+			statistics[val.first].response += val.second.response;				// count
+			statistics[val.first].transfer_bytes += val.second.transfer_bytes;	// transfer  data size
+			statistics[val.first].duration += val.second.duration;
 		}
 
 		for (auto &val : c->get_stcode()) {
-			stcode[val.first] += val.second;
+			status_codes[val.first] += val.second;
 		}
 	}
 
-	for (auto &c : stat) {
+	for (auto &c : statistics) {
 		request += c.second.request;
 		response += c.second.response;
 		bytes += c.second.transfer_bytes;
+		duration_tot += c.second.duration;
 	}
 
 	auto fnFormat = [](uint64_t size) -> string {
@@ -155,8 +158,7 @@ void Result(int duration, uint64_t total_duration, http_client_list &vCons)
 	};
 
 	cout << str(format("> %-17s: %sms") % "Duration" % total_duration) << endl;
-	cout << str(format("    %-15s: %0.2lfms") % "Latency" % (total_duration / (double)response)) << endl;
-
+	cout << str(format("    %-15s: %0.2lfms") % "Latency" % (duration_tot / (double)response)) << endl;
 	cout << str(format("    %-15s: %ld") % "Requests " % request) << endl;
 	cout << str(format("    %-15s: %ld") % "Response " % response) << endl;
 	cout << str(format("    %-15s: %s") % "Transfer" % fnFormat(bytes)) << endl;
@@ -164,7 +166,7 @@ void Result(int duration, uint64_t total_duration, http_client_list &vCons)
 	cout << str(format("    %-15s: %0.2lf") % "Requests/sec" % (response / (double)duration)) << endl;
 	cout << str(format("    %-15s: %s") % "Transfer/sec" % fnFormat(bytes / duration)) << endl;
 	cout << "> Response Status" << endl;
-	for (auto &val : stcode) {
+	for (auto &val : status_codes) {
 		cout << str(format("    %-15s: %d") % val.first % val.second) << endl;
 	}
 
