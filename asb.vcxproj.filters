@@ -21,7 +21,7 @@
     <ClInclude Include="targetver.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="http_client.h">
+    <ClInclude Include="http_client_loop.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -30,6 +30,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="asb.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="http_client_loop.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
