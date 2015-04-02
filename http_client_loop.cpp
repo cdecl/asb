@@ -137,7 +137,7 @@ std::string http_client_loop::now()
 	struct tm ttm = *localtime(&now);
 
 	char buf[80];
-	strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &ttm);
+	strftime(buf, sizeof(buf), "%Y-%m-%d %X", &ttm);
 
 	return std::string(buf);
 }

@@ -27,8 +27,7 @@ using boost::format;
 using http_client_list = vector < shared_ptr<http_client_loop> > ;
 using io_service_list = vector < shared_ptr<boost::asio::io_service> > ;
 
-void Result(int duration, uint64_t total_duration, http_client_list &vCons);
-
+void Result(const std::string& start, int duration, uint64_t total_duration, http_client_list &vCons);
 
 void Run(const std::string &url, const std::string &xurl, int connections, int threads, int duration, bool once,
 	const std::string &method, const std::string &data, header_t &headers)
@@ -53,7 +52,8 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 		}
 	}
 	
-	cout << str(format("> Start and Running %ds (%s)") % duration % http_client_loop::now()) << endl;
+	std::string start = http_client_loop::now();
+	cout << str(format("> Start and Running %ds (%s)") % duration % start) << endl;
 	cout << "  " << url << endl;
 	cout << str(format("    %d connections and %d Threads ")
 		% connections % threads) << endl;
@@ -101,13 +101,13 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 	}
 
 	auto tm1 = chrono::high_resolution_clock::now();
-	Result(duration, chrono::duration_cast<ms>(tm1 - tm0).count(), vCons);
+	Result(start, duration, chrono::duration_cast<ms>(tm1 - tm0).count(), vCons);
 
 	vCons.clear();
 }
 
 
-void Result(int duration, uint64_t total_duration, http_client_list &vCons)
+void Result(const std::string& start, int duration, uint64_t total_duration, http_client_list &vCons)
 {
 	Stat statistics;
 	StCode status_codes;
@@ -168,6 +168,15 @@ void Result(int duration, uint64_t total_duration, http_client_list &vCons)
 	cout << "> Response Status" << endl;
 	for (auto &val : status_codes) {
 		cout << str(format("    %-15s: %d") % val.first % val.second) << endl;
+	}
+
+	cout << "> Response" << endl;
+	cout << str(format("  %-14s %-7d %-7d") % "Time" % "Resp(c)" % "Lat(ms)") << endl;
+	for (auto &v : statistics) {
+		// linux bug : now() function 
+		if (v.first >= start) {
+			cout << str(format("  %14s %7d %7.2lf") % v.first.substr(5) % v.second.response % (v.second.duration / (double)v.second.response)) << endl;
+		}
 	}
 
 	cout << endl;
