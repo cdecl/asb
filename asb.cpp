@@ -170,6 +170,13 @@ void Result(int duration, uint64_t total_duration, http_client_list &vCons)
 		cout << str(format("    %-15s: %d") % val.first % val.second) << endl;
 	}
 
+	cout << "> Response" << endl;
+	cout << str(format("  %-14s %-7d %-7d") % "Time" % "Resp(c)" % "Lat(ms)") << endl;
+	for (auto &v : statistics) {
+		cout << str(format("  %14s %7d %7.2lf") % v.first.substr(5) % v.second.response % (v.second.duration / (double)v.second.response)) << endl;
+
+	}
+
 	cout << endl;
 }
 
