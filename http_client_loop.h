@@ -50,7 +50,7 @@ public:
 
 	static std::string ver()
 	{
-		return "1.0.2";
+		return "1.1.0";
 	}
 
 	bool open(const std::string& url, const std::string& proxy = "");

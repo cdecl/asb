@@ -61,26 +61,35 @@ Usage: asb <options> <url>
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
   example:    asb -test http://www.some_url/
-  version:    1.0.0
+  version:    1.1.0
   
 ```
 
 **Example**
 ```
-asb -d 5 -t 3 -c 40 http://localhost/index.html
-> Start and Running 5s (2015-03-22.23:41:52)
+asb -d 5 -t 3 -c 80 http://localhost/index.html
+> Start and Running 5s (2015-04-02 22:22:20)
   http://localhost/index.html
-    40 connections and 3 Threads
-> Duration         : 5001ms
-    Latency        : 0.03ms
-    Requests       : 178675
-    Response       : 178637
-    Transfer       : 61.67MB
+    80 connections and 3 Threads
+> Duration         : 5003ms
+    Latency        : 1.73ms
+    Requests       : 186768
+    Response       : 186690
+    Transfer       : 65.53MB
 > Per seconds
-    Requests/sec   : 35727.40
-    Transfer/sec   : 12.33MB
+    Requests/sec   : 37338.00
+    Transfer/sec   : 13.11MB
 > Response Status
-    HTTP/1.1 200   : 178637
+    HTTP/1.1 200   : 186690
+> Response
+  Time           Resp(c) Lat(ms)
+  04-02 22:22:20   15312    2.48
+  04-02 22:22:21   35721    1.83
+  04-02 22:22:22   37513    1.70
+  04-02 22:22:23   38372    1.67
+  04-02 22:22:24   40951    1.56
+  04-02 22:22:25   18821    1.46
+
 
 ```
 
