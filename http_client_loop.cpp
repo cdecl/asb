@@ -244,8 +244,14 @@ void http_client_loop::async_read_header()
 				stat_[sn].duration += std::chrono::duration_cast<ms>(t1 - t0_).count();
 			}
 
-			if (content_length > 0 && content_length > (int)response_.size()) {
-				async_read_content(content_length - response_.size(), chunked);
+			if (content_length > 0) {
+				if (content_length > (int)response_.size()) {
+					async_read_content(content_length - response_.size(), chunked);
+				}
+				else {
+					parse_contents(chunked);
+					next_session();
+				}
 			}
 			else {
 				next_session();
@@ -430,7 +436,9 @@ int http_client_loop::parse_contents(bool chunked)
 			}
 		}
 		else {
-			//// Content-Length : done 
+			// Content-Length : done
+			resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+			response_.consume(response_.size());
 		}
 	}
 	catch (std::exception &) {}
