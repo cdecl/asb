@@ -1,13 +1,14 @@
-# asb
+asb
+======
 Http benchmarking and load test tool for windows, posix 
 
 > C++11, boost::asio, openssl
 
 
 
-##Build##
+## Build
 
-###Ubuntu###
+### Ubuntu
 
 ```sh
 
@@ -28,10 +29,10 @@ make
 
 ```
 
-###Windows###
+### Windows
 > Visual C++ 2013
 
-```
+```bash
 
 # boost download & build 
 # win32
@@ -43,9 +44,9 @@ bjam.exe toolset=msvc-12.0 address-model=64 link=static runtime-link=static --wi
 
 ```
 
-##Usage##
+## Usage
 
-```
+```bash
 Usage: asb <options> <url>
   options:
     -d <N>    duraction(sec), default : 10
@@ -66,7 +67,7 @@ Usage: asb <options> <url>
 ```
 
 **Example**
-```
+```bash
 asb -d 5 -t 3 -c 80 http://localhost/index.html
 > Start and Running 5s (2015-04-02 22:22:20)
   http://localhost/index.html
@@ -94,7 +95,7 @@ asb -d 5 -t 3 -c 80 http://localhost/index.html
 ```
 
 
-```
+```bash
 asb -test -h "User-Agent: cdecl/asb" -h "Referer: http://httpbin.org" -m POST -i "post data" http://httpbin.org/post
 HTTP/1.1 200 OK
 Server: nginx
