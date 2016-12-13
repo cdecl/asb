@@ -1,6 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="packages\openssl.1.0.1.25\build\native\openssl.props" Condition="Exists('packages\openssl.1.0.1.25\build\native\openssl.props')" />
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -28,26 +27,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -66,26 +65,24 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros">
-    <NuGetPackageImportStamp>3adef13b</NuGetPackageImportStamp>
-  </PropertyGroup>
+  <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>D:\Library\boost\stage\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>D:\Library\boost\stage\lib\x64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>D:\Library\boost\stage\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
     <Linkage-openssl>static</Linkage-openssl>
     <Linkage-zlib>static</Linkage-zlib>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>D:\Library\boost\stage\lib\x64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
     <Linkage-openssl>static</Linkage-openssl>
     <Linkage-zlib>static</Linkage-zlib>
   </PropertyGroup>
@@ -175,19 +172,22 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="packages\zlib.redist.1.2.8.7\build\native\zlib.redist.targets" Condition="Exists('packages\zlib.redist.1.2.8.7\build\native\zlib.redist.targets')" />
-    <Import Project="packages\zlib.1.2.8.7\build\native\zlib.targets" Condition="Exists('packages\zlib.1.2.8.7\build\native\zlib.targets')" />
-    <Import Project="packages\openssl.redist.1.0.1.25\build\native\openssl.redist.targets" Condition="Exists('packages\openssl.redist.1.0.1.25\build\native\openssl.redist.targets')" />
-    <Import Project="packages\openssl.1.0.1.25\build\native\openssl.targets" Condition="Exists('packages\openssl.1.0.1.25\build\native\openssl.targets')" />
+    <Import Project="packages\boost.1.62.0.0\build\native\boost.targets" Condition="Exists('packages\boost.1.62.0.0\build\native\boost.targets')" />
+    <Import Project="packages\boost_system-vc140.1.62.0.0\build\native\boost_system-vc140.targets" Condition="Exists('packages\boost_system-vc140.1.62.0.0\build\native\boost_system-vc140.targets')" />
+    <Import Project="packages\boost_date_time-vc140.1.62.0.0\build\native\boost_date_time-vc140.targets" Condition="Exists('packages\boost_date_time-vc140.1.62.0.0\build\native\boost_date_time-vc140.targets')" />
+    <Import Project="packages\boost_regex-vc140.1.62.0.0\build\native\boost_regex-vc140.targets" Condition="Exists('packages\boost_regex-vc140.1.62.0.0\build\native\boost_regex-vc140.targets')" />
+    <Import Project="packages\emersonfxbx.openssl.v140.desktop.x64.redist.1.0.0.0\build\native\emersonfxbx.openssl.v140.desktop.x64.redist.targets" Condition="Exists('packages\emersonfxbx.openssl.v140.desktop.x64.redist.1.0.0.0\build\native\emersonfxbx.openssl.v140.desktop.x64.redist.targets')" />
+    <Import Project="packages\emersonfxbx.openssl.v140.desktop.x64.1.0.0.0\build\native\emersonfxbx.openssl.v140.desktop.x64.targets" Condition="Exists('packages\emersonfxbx.openssl.v140.desktop.x64.1.0.0.0\build\native\emersonfxbx.openssl.v140.desktop.x64.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>이 프로젝트는 이 컴퓨터에 없는 NuGet 패키지를 참조합니다. 해당 패키지를 다운로드하려면 NuGet 패키지 복원을 사용하십시오. 자세한 내용은 http://go.microsoft.com/fwlink/?LinkID=322105를 참조하십시오. 누락된 파일은 {0}입니다.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\zlib.redist.1.2.8.7\build\native\zlib.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\zlib.redist.1.2.8.7\build\native\zlib.redist.targets'))" />
-    <Error Condition="!Exists('packages\zlib.1.2.8.7\build\native\zlib.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\zlib.1.2.8.7\build\native\zlib.targets'))" />
-    <Error Condition="!Exists('packages\openssl.redist.1.0.1.25\build\native\openssl.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\openssl.redist.1.0.1.25\build\native\openssl.redist.targets'))" />
-    <Error Condition="!Exists('packages\openssl.1.0.1.25\build\native\openssl.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\openssl.1.0.1.25\build\native\openssl.props'))" />
-    <Error Condition="!Exists('packages\openssl.1.0.1.25\build\native\openssl.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\openssl.1.0.1.25\build\native\openssl.targets'))" />
+    <Error Condition="!Exists('packages\boost.1.62.0.0\build\native\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost.1.62.0.0\build\native\boost.targets'))" />
+    <Error Condition="!Exists('packages\boost_system-vc140.1.62.0.0\build\native\boost_system-vc140.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost_system-vc140.1.62.0.0\build\native\boost_system-vc140.targets'))" />
+    <Error Condition="!Exists('packages\boost_date_time-vc140.1.62.0.0\build\native\boost_date_time-vc140.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost_date_time-vc140.1.62.0.0\build\native\boost_date_time-vc140.targets'))" />
+    <Error Condition="!Exists('packages\boost_regex-vc140.1.62.0.0\build\native\boost_regex-vc140.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost_regex-vc140.1.62.0.0\build\native\boost_regex-vc140.targets'))" />
+    <Error Condition="!Exists('packages\emersonfxbx.openssl.v140.desktop.x64.redist.1.0.0.0\build\native\emersonfxbx.openssl.v140.desktop.x64.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\emersonfxbx.openssl.v140.desktop.x64.redist.1.0.0.0\build\native\emersonfxbx.openssl.v140.desktop.x64.redist.targets'))" />
+    <Error Condition="!Exists('packages\emersonfxbx.openssl.v140.desktop.x64.1.0.0.0\build\native\emersonfxbx.openssl.v140.desktop.x64.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\emersonfxbx.openssl.v140.desktop.x64.1.0.0.0\build\native\emersonfxbx.openssl.v140.desktop.x64.targets'))" />
   </Target>
 </Project>

@@ -16,7 +16,7 @@ Http benchmarking and load test tool for windows, posix
 sudo apt-get install build-essential 
 
 # boost - thread, regex, system, date-time
-sudo apt-get install libboost-thread-dev libboost-regex-dev libb oost-system-dev libboost-date-time-dev
+sudo apt-get install libboost-thread-dev libboost-regex-dev libboost-system-dev libboost-date-time-dev
 
 # openssl 
 sudo apt-get install libssl-dev
@@ -30,18 +30,11 @@ make
 ```
 
 ### Windows
-> Visual C++ 2013
+> Visual C++ 2015
 
 ```bash
-
-# boost download & build 
-# win32
-bjam.exe toolset=msvc-12.0 link=static runtime-link=static --with-system --with-date_time --with-regex --with-thread -j 4 stage
-# x64
-bjam.exe toolset=msvc-12.0 address-model=64 link=static runtime-link=static --with-system --with-date_time --with-regex --with-thread -j 4 stage
-
+## boost (boost_system, boost_system_time, boost_regex) - NuGet package install  
 ## openssl - NuGet package install  
-
 ```
 
 ## Usage
