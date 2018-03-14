@@ -1,9 +1,9 @@
 CC = g++
 CC_FLAGS = -std=c++11 -Wall -O2
-LD_LIBS = -pthread -lboost_system -lboost_regex -lssl -lcrypto -ldl -lz
+LD_LIBS = -pthread -lboost_system -lboost_regex -lssl -lcrypto -ldl -lz -static 
 # -ltcmalloc_minimal 
 
-EXEC = asb
+EXEC = asbs
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 
