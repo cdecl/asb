@@ -414,7 +414,10 @@ int http_client_loop::parse_contents(bool chunked)
 					getline(response_stream, s);
 				}
 
-				content_length = stoi(s, nullptr, 16);
+				content_length = 0;
+				if (!s.empty()) {
+					content_length = stoi(s, nullptr, 16);
+				}
 
 				if (content_length == 0) {
 					resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
