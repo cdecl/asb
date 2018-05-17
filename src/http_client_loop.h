@@ -9,6 +9,7 @@
 #include <chrono>
 #include <map>
 #include <regex>
+#include <memory>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
@@ -60,7 +61,7 @@ public:
 	void start_once();
 	void start();
 	bool is_open();
-	std::stringstream& get_response();
+	std::unique_ptr<std::stringstream>& get_response();
 	Stat& get_stat();
 	StCode& get_stcode();
 
@@ -84,7 +85,8 @@ private:
 
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
-	std::stringstream resp_stream_;
+
+	std::unique_ptr<std::stringstream> resp_stream_;
 
 	std::string xhost_;
 	std::string xport_;

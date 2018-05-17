@@ -43,11 +43,13 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 			return;
 		}
 
+		// -test mode 
 		if (once) {
 			client.start_once();
 			io.run();
 
-			cout << client.get_response().str() << endl;
+			auto &resp = client.get_response();
+			if (resp) cout << resp->str() << endl;
 			return;
 		}
 	}
@@ -74,7 +76,7 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 	auto tm0 = chrono::high_resolution_clock::now();
 	for (int i = 0; i < threads; ++i) {
 
-		thread tr([&io, url, xurl, connections, threads, duration, &method, &data, &headers, &vCons, &mtx]()
+		thread tr([&io, url, xurl, connections, threads, &method, &data, &headers, &vCons, &mtx]()
 		{
 			int cons = connections / threads;
 			for (int i = 0; i < cons && !io.stopped(); ++i) {

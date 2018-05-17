@@ -4,6 +4,8 @@
 #include "stdafx.h"
 #endif
 
+#include <iostream>
+using namespace std;
 #include "http_client_loop.h"
 
 
@@ -44,7 +46,7 @@ bool http_client_loop::open(const std::string& url, const std::string& proxy)
 			ctx_.set_default_verify_paths();
 
 			sslsocket_.set_verify_mode(boost::asio::ssl::verify_peer);
-			sslsocket_.set_verify_callback([this](bool preverified, boost::asio::ssl::verify_context& ctx) -> bool
+			sslsocket_.set_verify_callback([](bool preverified, boost::asio::ssl::verify_context& ctx) -> bool
 			{
 				char subject_name[256];
 				X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
@@ -99,6 +101,7 @@ void http_client_loop::reopen()
 
 void http_client_loop::start_once()
 {
+	resp_stream_ = make_unique<std::stringstream>();
 	next_session_s();
 	next_session = [this]{
 		sslsocket_.get_io_service().stop();
@@ -115,7 +118,7 @@ bool http_client_loop::is_open()
 	return sslsocket_.lowest_layer().is_open();
 }
 
-std::stringstream& http_client_loop::get_response()
+std::unique_ptr<std::stringstream>& http_client_loop::get_response()
 {
 	return resp_stream_;
 }
@@ -223,9 +226,10 @@ void http_client_loop::async_read_header()
 			next_session();
 		}
 		else {
-			resp_stream_.str("");
-			resp_stream_ << boost::algorithm::replace_all_copy(std::string(buffer_cast<const char*>(response_.data()), len), "\r\n", "\n");
-
+			if (resp_stream_) {
+				(*resp_stream_).str("");
+				(*resp_stream_) << boost::algorithm::replace_all_copy(std::string(buffer_cast<const char*>(response_.data()), len), "\r\n", "\n");
+			}
 			bool chunked = false;
 			// header invalid check, get content-length 
 			int content_length = parse_header(chunked);
@@ -346,12 +350,12 @@ void http_client_loop::async_read_content(size_t left, bool chunked)
 
 			if (chunked) {
 				if (left > len) {
-					resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
 					response_.consume(response_.size());
 					async_read_content(left - len, chunked);
 				}
 				else {
-					resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), left);
+					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), left);
 					response_.consume(left);
 					int content_length = parse_contents(chunked);
 
@@ -365,12 +369,12 @@ void http_client_loop::async_read_content(size_t left, bool chunked)
 			}
 			else {
 				if (left > len) {
-					resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
 					response_.consume(response_.size());
 					async_read_content(left - len);
 				}
 				else {
-					resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
 					response_.consume(response_.size());
 
 					parse_contents();
@@ -420,19 +424,19 @@ int http_client_loop::parse_contents(bool chunked)
 				}
 
 				if (content_length == 0) {
-					resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
 					response_.consume(response_.size());
 					break;
 				}
 
 				if (content_length <= (int)response_.size()) {
-					resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), content_length);
+					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), content_length);
 					response_.consume(content_length);
 				}
 				else {
 					content_length -= (int)response_.size();
 
-					resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
 					response_.consume(response_.size());
 					break;
 				}
@@ -440,12 +444,11 @@ int http_client_loop::parse_contents(bool chunked)
 		}
 		else {
 			// Content-Length : done
-			resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+			if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
 			response_.consume(response_.size());
 		}
 	}
 	catch (std::exception &) {}
-
 	return content_length;
 }
 
