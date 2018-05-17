@@ -210,7 +210,7 @@ void usage(int duration, int threads, int connections)
 	cout << endl;
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
 	cout << "  example:    asb -test http://www.some_url/" << endl;
-	cout << "  version:    " << http_client_loop::ver() << endl;
+	cout << "  version:    1.2 " << endl;
 }
 
 int main(int argc, char* argv[])

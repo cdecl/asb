@@ -49,11 +49,6 @@ public:
 		close();
 	}
 
-	static std::string ver()
-	{
-		return "1.1.1";
-	}
-
 	bool open(const std::string& url, const std::string& proxy = "");
 	void close();
 	void cancel();
