@@ -1,6 +1,6 @@
 CC = g++
-CC_FLAGS = -std=c++11 -Wall -O2
-LD_LIBS = -pthread -lboost_system -lboost_regex -lssl -lcrypto -ldl -lz -static 
+CC_FLAGS = -std=c++17 -Wall -O2 -I../openssl-1_0_2u/include/
+LD_LIBS = -pthread -lboost_system -lboost_regex -L../openssl-1_0_2u -lssl -lcrypto -ldl -lz -static -static-libstdc++
 # -ltcmalloc_minimal 
 
 EXEC = asbs

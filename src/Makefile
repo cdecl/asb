@@ -1,5 +1,5 @@
 CC = g++
-CC_FLAGS = -std=c++11 -Wall -O2
+CC_FLAGS = -std=c++17 -Wall -O2
 LD_LIBS = -pthread -lboost_system -lboost_regex -lssl -lcrypto -ldl -lz
 # -ltcmalloc_minimal 
 
