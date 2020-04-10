@@ -25,7 +25,7 @@ using boost::str;
 using boost::format;
 
 using http_client_list = vector < shared_ptr<http_client_loop> > ;
-using io_service_list = vector < shared_ptr<boost::asio::io_service> > ;
+using io_context_list = vector < shared_ptr<boost::asio::io_context> > ;
 
 void Result(const std::string& start, int duration, uint64_t total_duration, http_client_list &vCons);
 
@@ -34,7 +34,7 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 {
 	// connection test
 	{
-		boost::asio::io_service io;
+		boost::asio::io_context io;
 		http_client_loop client(io, method, data, std::move(headers));
 		bool b = client.open(url, xurl);
 
@@ -66,7 +66,7 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 	std::mutex mtx;
 	http_client_list vCons;
 
-	boost::asio::io_service io;
+	boost::asio::io_context io;
 	boost::asio::deadline_timer t(io, boost::posix_time::seconds(duration));
 	t.async_wait([&io](const boost::system::error_code)
 	{
@@ -159,25 +159,25 @@ void Result(const std::string& start, int duration, uint64_t total_duration, htt
 		return str(boost::format("%0.2lf%s") % dbytes % unit);
 	};
 
-	cout << str(format("> %-17s: %sms") % "Duration" % total_duration) << endl;
-	cout << str(format("    %-15s: %0.2lfms") % "Latency" % (duration_tot / (double)response)) << endl;
-	cout << str(format("    %-15s: %ld") % "Requests " % request) << endl;
-	cout << str(format("    %-15s: %ld") % "Response " % response) << endl;
-	cout << str(format("    %-15s: %s") % "Transfer" % fnFormat(bytes)) << endl;
-	cout << "> Per seconds" << endl;
-	cout << str(format("    %-15s: %0.2lf") % "Requests/sec" % (response / (double)duration)) << endl;
-	cout << str(format("    %-15s: %s") % "Transfer/sec" % fnFormat(bytes / duration)) << endl;
-	cout << "> Response Status" << endl;
+	cout << str(format("> %-17s: %sms") % "Duration" % total_duration) << "\n";
+	cout << str(format("    %-15s: %0.2lfms") % "Latency" % (duration_tot / (double)response)) << "\n";
+	cout << str(format("    %-15s: %ld") % "Requests " % request) << "\n";
+	cout << str(format("    %-15s: %ld") % "Response " % response) << "\n";
+	cout << str(format("    %-15s: %s") % "Transfer" % fnFormat(bytes)) << "\n";
+	cout << "> Per seconds" << "\n";
+	cout << str(format("    %-15s: %0.2lf") % "Requests/sec" % (response / (double)duration)) << "\n";
+	cout << str(format("    %-15s: %s") % "Transfer/sec" % fnFormat(bytes / duration)) << "\n";
+	cout << "> Response Status" << "\n";
 	for (auto &val : status_codes) {
-		cout << str(format("    %-15s: %d") % val.first % val.second) << endl;
+		cout << str(format("    %-15s: %d") % val.first % val.second) << "\n";
 	}
 
-	cout << "> Response" << endl;
-	cout << str(format("  %-14s %-7d %-7d") % "Time" % "Resp(c)" % "Lat(ms)") << endl;
+	cout << "> Response" << "\n";
+	cout << str(format("  %-14s %-7d %-7d") % "Time" % "Resp(c)" % "Lat(ms)") << "\n";
 	for (auto &v : statistics) {
 		// linux bug : now() function 
 		if (v.first >= start) {
-			cout << str(format("  %14s %7d %7.2lf") % v.first.substr(5) % v.second.response % (v.second.duration / (double)v.second.response)) << endl;
+			cout << str(format("  %14s %7d %7.2lf") % v.first.substr(5) % v.second.response % (v.second.duration / (double)v.second.response)) << "\n";
 		}
 	}
 
@@ -195,22 +195,25 @@ std::string read_file(const std::string path)
 
 void usage(int duration, int threads, int connections)
 {
-	cout << "Usage: asb <options> <url>" << endl;
-	cout << "  options:" << endl;
-	cout << "    -d <N>    duraction(sec), default : 10" << endl;
-	cout << "    -t <N>    threads, default core(thread::hardware_concurrency()) : " << threads << endl;
-	cout << "    -c <N>    connections, default core x 10 : " << connections << endl;
-	cout << "    -m <N>    method, default GET : " << endl;
-	cout << "    -i <N>    POST input data " << endl;
-	cout << "    -f <N>    POST input data, file path " << endl;
-	cout << "    -h <N>    add header, repeat " << endl;
-	cout << "    -x <N>    proxy url" << endl;
-	cout << "    <url>     url" << endl;
-	cout << "    -test     run test, output response header and body" << endl;
-	cout << endl;
-	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << endl;
-	cout << "  example:    asb -test http://www.some_url/" << endl;
-	cout << "  version:    1.2 " << endl;
+	cout << "Usage: asb <options> <url>" << "\n";
+	cout << "  options:" << "\n";
+	cout << "    -d <N>    duraction(sec), default : 10" << "\n";
+	cout << "    -t <N>    threads, default core(thread::hardware_concurrency()) : " << threads << "\n";
+	cout << "    -c <N>    connections, default core x 10 : " << connections << "\n";
+	cout << "    -m <N>    method, default GET : " << "\n";
+	cout << "    -i <N>    POST input data " << "\n";
+	cout << "    -f <N>    POST input data, file path " << "\n";
+	cout << "    -h <N>    add header, repeat " << "\n";
+	cout << "    -x <N>    proxy url" << "\n";
+	cout << "    <url>     url" << "\n";
+	cout << "    -test     run test, output response header and body" << "\n";
+	cout << "\n";
+	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << "\n";
+	cout << "  example:    asb -test http://www.some_url/" << "\n";
+	cout << "  version:    1.2.1 " << "\n";
+#if _MSC_VER 
+	cout << "  bulid: _MSC_VER " << _MSC_VER << "\n";
+#endif 
 }
 
 int main(int argc, char* argv[])

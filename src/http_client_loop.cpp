@@ -104,7 +104,7 @@ void http_client_loop::start_once()
 	resp_stream_ = make_unique<std::stringstream>();
 	next_session_s();
 	next_session = [this]{
-		sslsocket_.get_io_service().stop();
+		//sslsocket_.get_io_context().stop();
 	};
 }
 

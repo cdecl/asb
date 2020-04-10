@@ -37,8 +37,8 @@ using header_t = std::vector < std::string >;
 class http_client_loop
 {
 public:
-	http_client_loop(boost::asio::io_service& io_service, const std::string &method, const std::string &data, header_t headers)
-		: resolver_(io_service), socket_(io_service), ctx_(boost::asio::ssl::context::sslv23), sslsocket_(socket_, ctx_),
+	http_client_loop(boost::asio::io_context& io_context, const std::string &method, const std::string &data, header_t headers)
+		: resolver_(io_context), socket_(io_context), ctx_(boost::asio::ssl::context::sslv23), sslsocket_(socket_, ctx_),
 		method_(method), data_(data), headers_(headers)
 	{
 		next_session = std::bind(&http_client_loop::next_session_s, this);
