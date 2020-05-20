@@ -1,10 +1,9 @@
-asb
-======
+![C/C++ CI](https://github.com/cdecl/asb/workflows/C/C++%20CI/badge.svg)
+
+# asb
 Http benchmarking and load test tool for windows, posix 
 
 > C++11, boost::asio, openssl
-
-
 
 ## Build
 
@@ -22,19 +21,28 @@ sudo apt-get install libboost-thread-dev libboost-regex-dev libboost-system-dev 
 sudo apt-get install libssl-dev
 
 git clone https://github.com/cdecl/asb.git
-cd asb 
 
-# bulid
+cd asb/src
+
+# bulid → asb
 make 
 
+# static build → asbs 
+make -f Makefile.static
 ```
 
-### Windows
-> Visual C++ 2015
 
-```bash
-## boost (boost_system, boost_system_time, boost_regex) - NuGet package install  
-## openssl - NuGet package install  
+### Windows
+> Visual C++ 2019
+
+```cmd
+cd src
+
+REM nuget package restore 
+nuget.exe restore asb.sln
+
+REM build → src\x64\release\asb.exe
+msbuild asb.vcxproj /p:configuration=release /p:platform=x64
 ```
 
 ## Usage
