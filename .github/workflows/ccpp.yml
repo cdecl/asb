@@ -1,0 +1,107 @@
+name: C/C++ CI
+
+on:
+  push:
+    paths:
+    - '.github/workflows/ccpp.yml'
+
+jobs:
+  build-win:
+    runs-on: windows-2019
+    
+    steps:
+    - uses: actions/checkout@v2
+    - uses: nuget/setup-nuget@v1
+    - uses: microsoft/setup-msbuild@v1
+
+    - name: nuget restore 
+      run: | 
+        cd src 
+        nuget restore asb.sln
+        
+    - name: build
+      run: |
+        cd src 
+        msbuild asb.vcxproj /p:configuration=release /p:platform=x64
+        
+    - name: test
+      shell: cmd
+      run: |
+        cd src\x64\release
+        asb.exe -test http://httpbin.org/get
+        cd ..\..\..\
+        mkdir release
+        copy src\x64\release\asb.exe release\
+        copy src\x64\release\*.dll release\
+   
+    - name: upload artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: release-win
+        path: release
+
+  build-linux:
+    runs-on: ubuntu-latest
+    container: cdecl/gcc-boost
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: check g++ version 
+      run: g++ --version
+            
+    - name: make 
+      run: |
+        cd src 
+        make -f Makefile.static
+        mv asbs asb
+        ./asb -test http://httpbin.org/get   
+        mkdir release
+        cp asb ./release/
+        ls -l
+  
+    - name: upload artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: release-linux
+        path: src/release
+             
+  build-release:
+    needs: 
+      - build-linux
+      - build-win
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: download artifact
+      uses: actions/download-artifact@v1
+      with:
+        name: release-win   
+    - name: download artifact
+      uses: actions/download-artifact@v1
+      with:
+        name: release-linux      
+    - name: zip
+      run: |
+        zip -r asb.zip release-win release-linux 
+        
+    - name: Create Release
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+      uses: actions/create-release@v1
+      with:
+        tag_name: '20200520.1'
+        release_name: Release '20200520.1'
+        draft: false
+        prerelease: false
+
+    - name: upload release asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  
+        asset_path: ./asb.zip
+        asset_name: asb.zip
+        asset_content_type: application/zip
+  
