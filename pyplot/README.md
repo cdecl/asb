@@ -20,4 +20,7 @@ pip install -r requirements.txt
 # generate plot.html 
 ./asb -d 10 -c 80 | python3 plot.py
 ```
+---
 
+#### plot.html 
+![](images/2020-08-10-19-49-30.png)
