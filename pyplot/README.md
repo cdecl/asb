@@ -5,7 +5,7 @@
 
 ```sh
 # virtualenv
-python3 -v venv venv
+python3 -m venv venv
 
 # linux
 source venv/bin/activate
