@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.5)
 
 project(asb)
 
-add_compile_options( -Wall -std=c++14 -O2 -I/usr/local/opt/openssl/include )
+add_compile_options( -Wall -std=c++14 -O2 )
 link_directories()
-link_libraries(-pthread -lboost_system -lboost_regex -lssl -lcrypto )
+link_libraries( pthread boost_system boost_regex ssl crypto -static -static-libstdc++ -no-pie )
 
 file(GLOB src "${CMAKE_SOURCE_DIR}/src/*.cpp")
 # SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
