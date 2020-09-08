@@ -3,7 +3,7 @@ CC_FLAGS = -std=c++14 -Wall -O2
 LD_LIBS = -pthread -lboost_system -lboost_regex -lssl -lcrypto -ldl -lz -static -static-libstdc++ -no-pie
 # -ltcmalloc_minimal 
 
-EXEC = asbs
+EXEC = asb
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 
