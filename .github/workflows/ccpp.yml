@@ -42,7 +42,8 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
-    container: cdecl/gcc-boost
+    # container: cdecl/gcc-boost
+    container: ghcr.io/cdecl/alpine-gcc:latest
 
     steps:
     - uses: actions/checkout@v2
