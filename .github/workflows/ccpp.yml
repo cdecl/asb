@@ -91,8 +91,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
       uses: actions/create-release@v1
       with:
-        tag_name: '20200908.1'
-        release_name: Release '20200908.1'
+        tag_name: '20200918.0'
+        release_name: Release '20200918.0'
         draft: false
         prerelease: false
 
