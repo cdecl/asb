@@ -91,11 +91,13 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 				}
 			}
 			
-			io.run();
+			//io.run();
 		});
 
 		vThread.push_back(move(tr));
 	}
+
+	io.run();
 
 	// thread join
 	for (auto &t : vThread) {
@@ -210,7 +212,7 @@ void usage(int duration, int threads, int connections)
 	cout << "\n";
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << "\n";
 	cout << "  example:    asb -test http://www.some_url/" << "\n";
-	cout << "  version:    1.2.1 " << "\n";
+	cout << "  version:    1.3 " << "\n";
 #if _MSC_VER 
 	cout << "  bulid: _MSC_VER " << _MSC_VER << "\n";
 #endif 
@@ -269,6 +271,9 @@ int main(int argc, char* argv[])
 		if (i != (argc - 1)) throw std::logic_error("Parameter error");
 
 		url = argv[argc - 1];
+		if (string::npos == url.find("http://")) {
+			url = "http://"s + url;
+		}
 	}
 	catch (...) {
 		usage(duration, threads, connections);
