@@ -271,7 +271,7 @@ int main(int argc, char* argv[])
 		if (i != (argc - 1)) throw std::logic_error("Parameter error");
 
 		url = argv[argc - 1];
-		if (string::npos == url.find("http://")) {
+		if (0 != url.find("http")) {
 			url = "http://"s + url;
 		}
 	}
