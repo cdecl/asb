@@ -212,7 +212,7 @@ void usage(int duration, int threads, int connections)
 	cout << "\n";
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << "\n";
 	cout << "  example:    asb -test http://www.some_url/" << "\n";
-	cout << "  version:    1.3 " << "\n";
+	cout << "  version:    1.3.1 " << "\n";
 #if _MSC_VER 
 	cout << "  bulid: _MSC_VER " << _MSC_VER << "\n";
 #endif 
