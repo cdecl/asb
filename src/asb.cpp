@@ -24,8 +24,9 @@ using namespace std;
 using boost::str;
 using boost::format;
 
-using http_client_list = vector < shared_ptr<http_client_loop> > ;
-using io_context_list = vector < shared_ptr<boost::asio::io_context> > ;
+using http_client_list = vector<shared_ptr<http_client_loop>>;
+using io_context_list = vector<shared_ptr<boost::asio::io_context>>;
+using thread_list = std::vector<std::thread>;
 
 void Result(const std::string& start, int duration, uint64_t total_duration, http_client_list &vCons);
 
@@ -60,24 +61,28 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 	cout << str(format("    %d connections and %d Threads ")
 		% connections % threads) << endl;
 
-	std::vector<thread> vThread;
-	std::vector<thread> ios;
-
 	std::mutex mtx;
+	thread_list vThread;
+	io_context_list ios;	
 	http_client_list vCons;
 
 	boost::asio::io_context io;
 	boost::asio::deadline_timer t(io, boost::posix_time::seconds(duration));
-	t.async_wait([&io](const boost::system::error_code)
+	t.async_wait([&io, &ios](const boost::system::error_code)
 	{
 		io.stop();
+		for (auto &pio : ios) {
+			pio->stop();
+		}
 	});
 
 	auto tm0 = chrono::high_resolution_clock::now();
 	for (int i = 0; i < threads; ++i) {
+		auto pio = make_shared<boost::asio::io_context>();	
 
-		thread tr([&io, url, xurl, connections, threads, &method, &data, &headers, &vCons, &mtx]()
+		thread tr([pio, url, xurl, connections, threads, &method, &data, &headers, &vCons, &mtx]
 		{
+			auto &io = *pio;
 			int cons = connections / threads;
 			for (int i = 0; i < cons && !io.stopped(); ++i) {
 
@@ -90,10 +95,11 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 					vCons.push_back(c);
 				}
 			}
-			
-			//io.run();
+		
+			io.run();
 		});
 
+		ios.emplace_back(move(pio));
 		vThread.push_back(move(tr));
 	}
 
@@ -212,7 +218,7 @@ void usage(int duration, int threads, int connections)
 	cout << "\n";
 	cout << "  example:    asb -d 10 -c 10 -t 2 http://www.some_url/" << "\n";
 	cout << "  example:    asb -test http://www.some_url/" << "\n";
-	cout << "  version:    1.3.1 " << "\n";
+	cout << "  version:    1.4 " << "\n";
 #if _MSC_VER 
 	cout << "  bulid: _MSC_VER " << _MSC_VER << "\n";
 #endif 
