@@ -36,7 +36,7 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 	// connection test
 	{
 		boost::asio::io_context io;
-		http_client_loop client(io, method, data, std::move(headers));
+		http_client_loop client(io, method, data, headers);
 		bool b = client.open(url, xurl);
 
 		if (!b) {
@@ -86,7 +86,7 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 			int cons = connections / threads;
 			for (int i = 0; i < cons && !io.stopped(); ++i) {
 
-				auto c = make_shared<http_client_loop>(io, method, data, std::move(headers));
+				auto c = make_shared<http_client_loop>(io, method, data, headers);
 				c->open(url, xurl);
 				c->start();
 
