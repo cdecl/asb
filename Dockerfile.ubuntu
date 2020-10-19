@@ -1,0 +1,18 @@
+FROM ubuntu:20.04 AS build
+WORKDIR /app
+
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && apt-get install g++ cmake make git libboost-regex-dev libboost-system-dev libssl-dev -y
+RUN cp /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+
+RUN git clone https://github.com/cdecl/asb && mkdir -p asb/build && cd asb/build && cmake .. && make && cp ./asb /usr/bin/
+
+
+FROM ubuntu:20.04
+
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install tzdata libboost-regex1.71.0 libboost-system1.71.0 libssl1.1 -y
+RUN cp /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+
+COPY --from=build /usr/bin/asb /usr/bin/
+RUN chmod +x /usr/bin/asb
+CMD ["asb"]
