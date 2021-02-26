@@ -15,14 +15,14 @@
 #include <vector>
 using namespace std;
 
+#include "CLI11/CLI11.hpp"
+#include "fmt/format.h"
+
 #ifdef _DEBUG 
 #define BOOST_ASIO_ENABLE_HANDLER_TRACKING
 #endif
 
 #include "http_client_loop.h"
-#include <boost/format.hpp>
-using boost::str;
-using boost::format;
 
 using http_client_list = vector<shared_ptr<http_client_loop>>;
 using io_context_list = vector<shared_ptr<boost::asio::io_context>>;
@@ -56,10 +56,9 @@ void Run(const std::string &url, const std::string &xurl, int connections, int t
 	}
 	
 	std::string start = http_client_loop::now();
-	cout << str(format("> Start and Running %ds (%s)") % duration % start) << endl;
+	cout << fmt::format("> Start and Running {}s ({})", duration, start) << endl;
 	cout << "  " << url << endl;
-	cout << str(format("    %d connections and %d Threads ")
-		% connections % threads) << endl;
+	cout << fmt::format("    {} connections and {} Threads ", connections, threads) << endl;
 
 	std::mutex mtx;
 	thread_list vThread;
@@ -147,7 +146,7 @@ void Result(const std::string& start, int duration, uint64_t total_duration, htt
 	}
 
 	auto fnFormat = [](uint64_t size) -> string {
-		double dbytes;
+		double dbytes{};
 		string unit = "B";
 
 		if (size > uint64_t(1024 * 1024 * 1024)) {
@@ -164,28 +163,28 @@ void Result(const std::string& start, int duration, uint64_t total_duration, htt
 		}
 		else {}
 
-		return str(boost::format("%0.2lf%s") % dbytes % unit);
+		return fmt::format("{:.2f}{}", dbytes, unit);  // %0.2lf%s
 	};
 
-	cout << str(format("> %-17s: %sms") % "Duration" % total_duration) << "\n";
-	cout << str(format("    %-15s: %0.2lfms") % "Latency" % (duration_tot / (double)response)) << "\n";
-	cout << str(format("    %-15s: %ld") % "Requests " % request) << "\n";
-	cout << str(format("    %-15s: %ld") % "Response " % response) << "\n";
-	cout << str(format("    %-15s: %s") % "Transfer" % fnFormat(bytes)) << "\n";
+	cout << fmt::format("> {:<17}: {}ms", "Duration", total_duration) << "\n";
+	cout << fmt::format("    {:<15}: {:.2f}ms", "Latency", (duration_tot / (double)response)) << "\n";
+	cout << fmt::format("    {:<15}: {}", "Requests ", request) << "\n";
+	cout << fmt::format("    {:<15}: {}", "Response ", response) << "\n";
+	cout << fmt::format("    {:<15}: {}", "Transfer", fnFormat(bytes)) << "\n";
 	cout << "> Per seconds" << "\n";
-	cout << str(format("    %-15s: %0.2lf") % "Requests/sec" % (response / (double)duration)) << "\n";
-	cout << str(format("    %-15s: %s") % "Transfer/sec" % fnFormat(bytes / duration)) << "\n";
+	cout << fmt::format("    {:<15}: {:.2f}", "Requests/sec", (response / (double)duration)) << "\n";
+	cout << fmt::format("    {:<15}: {}", "Transfer/sec", fnFormat(bytes / duration)) << "\n";
 	cout << "> Response Status" << "\n";
 	for (auto &val : status_codes) {
-		cout << str(format("    %-15s: %d") % val.first % val.second) << "\n";
+		cout << fmt::format("    {:<15}: {}", val.first, val.second) << "\n";
 	}
 
 	cout << "> Response" << "\n";
-	cout << str(format("  %-14s %-7d %-7d") % "Time" % "Resp(c)" % "Lat(ms)") << "\n";
+	cout << fmt::format("  {:<14} {:>8} {:>8}", "Time", "Resp(c)", "Lat(ms)") << "\n";
 	for (auto &v : statistics) {
 		// linux bug : now() function 
 		if (v.first >= start) {
-			cout << str(format("  %14s %7d %7.2lf") % v.first.substr(5) % v.second.response % (v.second.duration / (double)v.second.response)) << "\n";
+			cout << fmt::format("  {:<14} {:>8} {:>8.2f}", v.first.substr(5), v.second.response, (v.second.duration / (double)v.second.response)) << "\n";
 		}
 	}
 
@@ -226,67 +225,39 @@ void usage(int duration, int threads, int connections)
 
 int main(int argc, char* argv[])
 {
-	int duration = 10;
-	int threads = (int)thread::hardware_concurrency();
-	int connections = threads * 10;
-	std::string method = "GET";
-	std::string data;
-	header_t headers;
-	
-	if (argc < 2) {
-		usage(duration, threads, connections);
-		return -1;
-	}
-	
-	bool test = false;
-	std::string url;
-	std::string xurl;
-
 	try {
-		int i = 1;
-		for (; i < (argc - 1); ++i) {
-			if (string("-d") == argv[i]) {
-				duration = std::stoi(argv[++i]);
-			}
-			else if (string("-c") == argv[i]) {
-				connections = std::stoi(argv[++i]);
-			}
-			else if (string("-t") == argv[i]) {
-				threads = std::stoi(argv[++i]);
-			}
-			else if (string("-m") == argv[i]) {
-				method = boost::algorithm::to_upper_copy(string(argv[++i]));
-			}
-			else if (string("-i") == argv[i]) {
-				data = argv[++i];
-			}
-			else if (string("-f") == argv[i]) {
-				data = read_file(argv[++i]);
-			}
-			else if (string("-h") == argv[i]) {
-				headers.push_back(argv[++i]);
-			}
-			else if (string("-x") == argv[i]) {
-				xurl = argv[++i];
-			}
-			else if (string("-test") == argv[i]) {
-				test = true;
-			}
-		}
+		int duration = 10;
+		int threads = (int)thread::hardware_concurrency();
+		int connections = threads * 10;
+		std::string method = "GET";
+		std::string data;
+		header_t headers;
+		std::string xurl;
+		std::string url;
+		bool test = false;
 
-		if (i != (argc - 1)) throw std::logic_error("Parameter error");
+		CLI::App app { "Http benchmarking and load test tool for windows, posix"};
+		app.add_option("-d", duration, "Duraction(sec), default 10");
+		app.add_option("-t", threads, fmt::format("Threads, default core(thread::hardware_concurrency()), default {}", threads));
+		app.add_option("-c", connections, fmt::format("Connections, default core x 10, default {}", connections));
+		app.add_option("-m", method, "Method, default GET ");
+		app.add_option("-i", data, "POST input data ");
+		app.add_option("-H, --header", headers, "Add header, repeat");
+		app.add_option("-x", xurl, "Proxy url");
+		app.add_option("url", url, "Url")->required();
+		app.add_flag("-T,--test", test, "Run test, output response header and body");
+		app.footer(
+			"  example:    asb -d 10 -c 10 -t 2 http://www.some_url/ \n"
+			"  example:    asb --test http://www.some_url/ \n"
+			"  version:    1.4              \n"
+		);
 
-		url = argv[argc - 1];
+		CLI11_PARSE(app, argc, argv);
+
 		if (0 != url.find("http")) {
 			url = "http://"s + url;
 		}
-	}
-	catch (...) {
-		usage(duration, threads, connections);
-		return -1;
-	}
-	 
-	try {
+
 		Run(url, xurl, connections, threads, duration, test, method, data, headers);
 	}
 	catch (exception &e) {
