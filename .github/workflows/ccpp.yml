@@ -28,7 +28,7 @@ jobs:
       shell: cmd
       run: |
         cd src\x64\release
-        asb.exe -test http://httpbin.org/get
+        asb.exe --test http://httpbin.org/get
         cd ..\..\..\
         mkdir release
         copy src\x64\release\asb.exe release\
@@ -54,7 +54,7 @@ jobs:
       run: |
         cd src 
         make -f Makefile.static
-        ./asb -test http://httpbin.org/get   
+        ./asb --test http://httpbin.org/get   
         mkdir release
         cp asb ./release/
         ls -l
