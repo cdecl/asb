@@ -5,25 +5,51 @@ Http benchmarking and load test tool for windows, posix
 
 > C++11, boost::asio, openssl
 
-## Build
+## Build 
 
-### Ubuntu
+### CMake (with vcpkg)
 
+- vcpkg package install 
 ```sh
-# build tool 
-$ sudo apt-get install build-essential 
+# windows 
+$ vcpkg.exe install boost-asio:x64-windows-static boost-regex:x64-windows-static openssl:x64-windows-static
 
-# boost - thread, regex, system, date-time, openssl 
-$ sudo apt-get install libboost-regex-dev libboost-system-dev libssl-dev
+# linux : x64-linux
+$ ./vcpkg install boost-asio boost-regex openssl
 
-$ git clone https://github.com/cdecl/asb.git
+$ ./vcpkg integrate install
+Applied user-wide integration for this vcpkg root.
 
-$ cd asb/src
+CMake projects should use: "-DCMAKE_TOOLCHAIN_FILE=/<path>/vcpkg/scripts/buildsystems/vcpkg.cmake"
+```
+
+- build 
+```sh
+# build directory
 $ mkdir build && cd build
 
-# build 
+# cmake init
+$ cmake .. -DCMAKE_TOOLCHAIN_FILE=/<path>/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+# build
+$ cmake --build . --config Release
+```
+
+
+
+### Ubuntu
+```sh
+# boost regex, system, openssl 
+$ sudo apt-get install libboost-regex-dev libboost-system-dev libssl-dev
+
+$ mkdir build && cd build
+
+# cmake init
 $ cmake .. 
-$ make 
+
+# build
+# $ cmake --build . --config Release
+$ make  
 ```
 
 ### Windows
@@ -65,7 +91,7 @@ Options:
   version:    1.5
 ```
 
-**Example**
+- **Example**
 ```bash
 $ ./asb -d 5 -t 3 -c 80 http://localhost/index.html
 > Start and Running 5s (2015-04-02 22:22:20)
@@ -92,8 +118,7 @@ $ ./asb -d 5 -t 3 -c 80 http://localhost/index.html
 ```
 
 ```bash
-$ ./asb --test -H "User-Agent: cdecl/asb" -H "Referer: http://httpbin.org" -m POST -i "post data"
-http://httpbin.org/post
+$ ./asb --test -H "User-Agent: cdecl/asb" -H "Referer: http://httpbin.org" -m POST -i "post data" http://httpbin.org/post
 HTTP/1.1 200 OK
 Date: Fri, 26 Feb 2021 06:59:12 GMT
 Content-Type: application/json
