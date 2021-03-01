@@ -11,8 +11,8 @@ Http benchmarking and load test tool for windows, posix
 
 - vcpkg package install 
 ```sh
-# windows 
-$ vcpkg.exe install boost-asio:x64-windows-static boost-regex:x64-windows-static openssl:x64-windows-static
+# windows : default --triplet=x86-windows
+$ vcpkg.exe install boost-asio boost-regex openssl --triplet=x64-windows-static
 
 # linux : x64-linux
 $ ./vcpkg install boost-asio boost-regex openssl
@@ -28,8 +28,11 @@ CMake projects should use: "-DCMAKE_TOOLCHAIN_FILE=/<path>/vcpkg/scripts/buildsy
 # build directory
 $ mkdir build && cd build
 
-# cmake init
+# linux cmake init
 $ cmake .. -DCMAKE_TOOLCHAIN_FILE=/<path>/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+# windows cmake init - triplet x64-windows-static
+$ cmake .. -DCMAKE_TOOLCHAIN_FILE=/<path>/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static
 
 # build
 $ cmake --build . --config Release
