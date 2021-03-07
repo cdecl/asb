@@ -71,7 +71,7 @@ msbuild asb.vcxproj /p:configuration=release /p:platform=x64
 ## Usage
 
 ```bash
-$ ./asb -h
+$  ./asb -h
 Http benchmarking and load test tool for windows, posix
 Usage: ./asb [OPTIONS] url
 
@@ -85,13 +85,14 @@ Options:
   -c INT                      Connections, default core x 10, default 40
   -m TEXT                     Method, default GET
   -i TEXT                     POST input data
+  -f TEXT:FILE                POST input data, file path
   -H,--header TEXT ...        Add header, repeat
   -x TEXT                     Proxy url
   -T,--test                   Run test, output response header and body
 
   example:    asb -d 10 -c 10 -t 2 http://www.some_url/
   example:    asb --test http://www.some_url/
-  version:    1.5
+  version:    1.5.1
 ```
 
 - **Example**
