@@ -1,5 +1,5 @@
 CC = g++
-CC_FLAGS = -std=c++14 -Wall -O2 -DFMT_HEADER_ONLY
+CC_FLAGS = -std=c++17 -Wall -O2 -DFMT_HEADER_ONLY
 LD_LIBS = -pthread -lboost_system -lboost_regex -lssl -lcrypto -ldl -lz -static -static-libstdc++ -no-pie
 # -ltcmalloc_minimal 
 
