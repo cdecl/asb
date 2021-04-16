@@ -32,7 +32,7 @@ jobs:
         cd ..\..\..\
         mkdir release
         copy src\x64\release\asb.exe release\
-        copy src\x64\release\*.dll release\
+        # copy src\x64\release\*.dll release\
    
     - name: upload artifact
       uses: actions/upload-artifact@v1

@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="packages\vcpkg-export-boost-asio-x64-static.1.0.1\build\native\vcpkg-export-boost-asio-x64-static.props" Condition="Exists('packages\vcpkg-export-boost-asio-x64-static.1.0.1\build\native\vcpkg-export-boost-asio-x64-static.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -153,6 +154,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>crypt32.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -178,20 +181,13 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="packages\boost.1.71.0.0\build\boost.targets" Condition="Exists('packages\boost.1.71.0.0\build\boost.targets')" />
-    <Import Project="packages\boost_system-vc142.1.71.0.0\build\boost_system-vc142.targets" Condition="Exists('packages\boost_system-vc142.1.71.0.0\build\boost_system-vc142.targets')" />
-    <Import Project="packages\boost_regex-vc142.1.71.0.0\build\boost_regex-vc142.targets" Condition="Exists('packages\boost_regex-vc142.1.71.0.0\build\boost_regex-vc142.targets')" />
-    <Import Project="packages\boost_date_time-vc142.1.71.0.0\build\boost_date_time-vc142.targets" Condition="Exists('packages\boost_date_time-vc142.1.71.0.0\build\boost_date_time-vc142.targets')" />
-    <Import Project="packages\zeroc.openssl.v142.1.0.2.6\build\native\zeroc.openssl.v142.targets" Condition="Exists('packages\zeroc.openssl.v142.1.0.2.6\build\native\zeroc.openssl.v142.targets')" />
+    <Import Project="packages\vcpkg-export-boost-asio-x64-static.1.0.1\build\native\vcpkg-export-boost-asio-x64-static.targets" Condition="Exists('packages\vcpkg-export-boost-asio-x64-static.1.0.1\build\native\vcpkg-export-boost-asio-x64-static.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>이 프로젝트는 이 컴퓨터에 없는 NuGet 패키지를 참조합니다. 해당 패키지를 다운로드하려면 NuGet 패키지 복원을 사용하십시오. 자세한 내용은 http://go.microsoft.com/fwlink/?LinkID=322105를 참조하십시오. 누락된 파일은 {0}입니다.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\boost.1.71.0.0\build\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost.1.71.0.0\build\boost.targets'))" />
-    <Error Condition="!Exists('packages\boost_system-vc142.1.71.0.0\build\boost_system-vc142.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost_system-vc142.1.71.0.0\build\boost_system-vc142.targets'))" />
-    <Error Condition="!Exists('packages\boost_regex-vc142.1.71.0.0\build\boost_regex-vc142.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost_regex-vc142.1.71.0.0\build\boost_regex-vc142.targets'))" />
-    <Error Condition="!Exists('packages\boost_date_time-vc142.1.71.0.0\build\boost_date_time-vc142.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost_date_time-vc142.1.71.0.0\build\boost_date_time-vc142.targets'))" />
-    <Error Condition="!Exists('packages\zeroc.openssl.v142.1.0.2.6\build\native\zeroc.openssl.v142.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\zeroc.openssl.v142.1.0.2.6\build\native\zeroc.openssl.v142.targets'))" />
+    <Error Condition="!Exists('packages\vcpkg-export-boost-asio-x64-static.1.0.1\build\native\vcpkg-export-boost-asio-x64-static.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg-export-boost-asio-x64-static.1.0.1\build\native\vcpkg-export-boost-asio-x64-static.props'))" />
+    <Error Condition="!Exists('packages\vcpkg-export-boost-asio-x64-static.1.0.1\build\native\vcpkg-export-boost-asio-x64-static.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg-export-boost-asio-x64-static.1.0.1\build\native\vcpkg-export-boost-asio-x64-static.targets'))" />
   </Target>
 </Project>
