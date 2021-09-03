@@ -14,9 +14,11 @@ file(GLOB src "${CMAKE_SOURCE_DIR}/src/*.cpp")
 add_executable(asb ${src})
 
 if (MSVC) 
-  target_compile_options(asb PRIVATE /DFMT_HEADER_ONLY /MT)
+  target_compile_options(asb PRIVATE /MT)
+  target_compile_definitions(asb PRIVATE FMT_HEADER_ONLY _CRT_SECURE_NO_WARNINGS)
 else()
-  target_compile_options(asb PRIVATE -DFMT_HEADER_ONLY -O2)
+  target_compile_options(asb PRIVATE -O2)
+  target_compile_definitions(asb PRIVATE FMT_HEADER_ONLY)
 endif()
 
 find_package(OpenSSL REQUIRED)
