@@ -13,7 +13,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
-#include <boost/bind.hpp>
+// #include <boost/bind.hpp>
 #include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -27,6 +27,13 @@ struct http_stat
 	uint64_t response;
 	uint64_t transfer_bytes;
 	uint64_t duration;
+
+	void add_stat(uint64_t req, uint64_t resp, uint64_t transb, uint64_t dur) {
+		request += req;
+		response += resp;
+		transfer_bytes += transb;
+		duration += dur;
+	}
 };
 
 using Stat = std::map <std::string, http_stat>;
@@ -37,6 +44,10 @@ using header_t = std::vector < std::string >;
 class http_client_loop
 {
 public:
+	http_client_loop() = delete;
+	http_client_loop(const http_client_loop&) = delete;
+	http_client_loop& operator=(const http_client_loop&) = delete;
+
 	http_client_loop(boost::asio::io_context& io_context, const std::string &method, const std::string &data, header_t headers)
 		: resolver_(io_context), socket_(io_context), ctx_(boost::asio::ssl::context::sslv23), sslsocket_(socket_, ctx_),
 		method_(method), data_(data), headers_(headers)
@@ -63,6 +74,7 @@ public:
 	static std::string now();
 
 private:
+	void add_stat(uint64_t req, uint64_t resp, uint64_t transb, uint64_t dur);
 	bool urlparser(const std::string &url);
 	void next_session_s();
 	void async_write();

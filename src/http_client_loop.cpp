@@ -145,8 +145,13 @@ std::string http_client_loop::now()
 	return std::string(buf);
 }
 
-
 // private 
+
+void http_client_loop::add_stat(uint64_t req, uint64_t resp, uint64_t transb, uint64_t dur)
+{
+	std::string sn = now();
+	stat_[sn].add_stat(req, resp, transb, dur);
+}
 
 bool http_client_loop::urlparser(const std::string &url)
 {
@@ -192,11 +197,7 @@ void http_client_loop::async_write()
 	auto async_write_handler = [this/*, t0*/](const boost::system::error_code &err, size_t len)
 	{
 		if (!err) {
-			//async_read_header();
-
-			std::string sn = now();
-			stat_[sn].request++;
-			stat_[sn].transfer_bytes += len;
+			add_stat(1, 0, len, 0);
 		}
 		else {
 			close();
@@ -240,12 +241,9 @@ void http_client_loop::async_read_header()
 
 			// logging
 			if (content_length >= 0) {
-				std::string sn = now();
-				stat_[sn].response++;
-				stat_[sn].transfer_bytes += len + content_length;
-
 				auto t1 = high_resolution_clock::now();
-				stat_[sn].duration += std::chrono::duration_cast<ms>(t1 - t0_).count();
+				auto duration = std::chrono::duration_cast<ms>(t1 - t0_).count();
+				add_stat(0, 1, len + content_length, duration);
 			}
 
 			if (content_length > 0) {
@@ -344,8 +342,7 @@ void http_client_loop::async_read_content(size_t left, bool chunked)
 		using namespace boost::asio;
 
 		if (!err) {
-			std::string sn = now();
-			stat_[sn].transfer_bytes += len;
+			add_stat(0, 0, len, 0);
 
 
 			if (chunked) {
