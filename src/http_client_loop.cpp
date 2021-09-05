@@ -101,7 +101,7 @@ void http_client_loop::reopen()
 
 void http_client_loop::start_once()
 {
-	resp_stream_ = make_unique<std::stringstream>();
+	resp_stream_.str("");
 	next_session_s();
 	next_session = [this]{
 		//sslsocket_.get_io_context().stop();
@@ -118,7 +118,7 @@ bool http_client_loop::is_open()
 	return sslsocket_.lowest_layer().is_open();
 }
 
-std::unique_ptr<std::stringstream>& http_client_loop::get_response()
+std::stringstream& http_client_loop::get_response()
 {
 	return resp_stream_;
 }
@@ -227,36 +227,30 @@ void http_client_loop::async_read_header()
 			next_session();
 		}
 		else {
-			if (resp_stream_) {
-				(*resp_stream_).str("");
-				(*resp_stream_) << boost::algorithm::replace_all_copy(std::string(buffer_cast<const char*>(response_.data()), len), "\r\n", "\n");
-			}
+			resp_stream_.str("");
+			resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), len);
+			response_.consume(len);
+
 			bool chunked = false;
 			// header invalid check, get content-length 
 			int content_length = parse_header(chunked);
 
 			if (chunked) {
-				content_length = parse_contents(chunked);
-			}
-
-			// logging
-			if (content_length >= 0) {
-				auto t1 = high_resolution_clock::now();
-				auto duration = std::chrono::duration_cast<ms>(t1 - t0_).count();
-				add_stat(0, 1, len + content_length, duration);
-			}
-
-			if (content_length > 0) {
-				if (content_length > (int)response_.size()) {
-					async_read_content(content_length - response_.size(), chunked);
-				}
-				else {
-					parse_contents(chunked);
-					next_session();
-				}
+				async_read_content(content_length, chunked);
 			}
 			else {
-				next_session();
+				if (content_length > 0) {
+					if (content_length > (int)response_.size()) {
+						async_read_content(content_length, chunked);
+					}
+					else {
+						parse_contents(chunked);
+						next_session();
+					}
+				}
+				else {
+					next_session();
+				}
 			}
 		}
 	};
@@ -270,8 +264,6 @@ void http_client_loop::async_read_header()
 	else {
 		boost::asio::async_read_until(socket_, response_, "\r\n\r\n", async_read_until_handler);
 	}
-
-
 }
 
 int http_client_loop::parse_header(bool &chunked)
@@ -281,7 +273,8 @@ int http_client_loop::parse_header(bool &chunked)
 	int content_length = 0;
 
 	try {
-		std::istream response_stream(&response_);
+		// if (!resp_stream_) cerr << "resp_stream_ is null" << endl;
+		auto &response_stream = resp_stream_;
 
 		std::string header;
 		getline(response_stream, header);
@@ -307,7 +300,7 @@ int http_client_loop::parse_header(bool &chunked)
 		// status_code statistics
 		stcode_[http_version + " " + status_code]++;
 
-		while (getline(response_stream, header) && header != "\r") {
+		while (getline(response_stream, header) && header != "\r\n") {
 			string::size_type pos = header.find("Content-Length");
 			if (pos != string::npos) {
 				pos = header.find(":");
@@ -331,61 +324,47 @@ int http_client_loop::parse_header(bool &chunked)
 		//cout << e.what() << endl;
 	}
 
+	resp_stream_.clear();
 	return content_length;
 }
 
 
-void http_client_loop::async_read_content(size_t left, bool chunked)
+void http_client_loop::async_read_content(size_t content_length, bool chunked)
 {
-	auto async_read_handler = [this, left, chunked](const boost::system::error_code &err, std::size_t len)
+	auto async_read_handler = [this, content_length, chunked](const boost::system::error_code &err, std::size_t len)
 	{
 		using namespace boost::asio;
 
-		if (!err) {
-			add_stat(0, 0, len, 0);
-
-
+		if (err) {	// err
+			if (err != boost::asio::error::eof) {
+				close();
+				reopen();
+			}
+			next_session();
+		}
+		else {
 			if (chunked) {
-				if (left > len) {
-					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
-					response_.consume(response_.size());
-					async_read_content(left - len, chunked);
-				}
-				else {
-					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), left);
-					response_.consume(left);
-					int content_length = parse_contents(chunked);
-
-					if (content_length > 0) {
-						async_read_content(content_length, chunked);
+				if (response_.size() > 5) {
+					string s { buffer_cast<const char*>(response_.data()), response_.size() };
+					string ends = s.substr(response_.size() - 5);
+					if (ends != "0\r\n\r\n") {
+						async_read_content(0, true);
 					}
 					else {
+						parse_contents(true);
 						next_session();
 					}
 				}
 			}
 			else {
-				if (left > len) {
-					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
-					response_.consume(response_.size());
-					async_read_content(left - len);
+				if (content_length > response_.size()) {
+					async_read_content(content_length);
 				}
 				else {
-					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
-					response_.consume(response_.size());
-
-					parse_contents();
+					parse_contents(false);
 					next_session();
 				}
 			}
-		}
-		else if (err) {	// err
-			if (err != boost::asio::error::eof) {
-				close();
-				reopen();
-			}
-
-			next_session();
 		}
 	};
 
@@ -397,56 +376,50 @@ void http_client_loop::async_read_content(size_t left, bool chunked)
 	}
 }
 
-int http_client_loop::parse_contents(bool chunked)
+void http_client_loop::parse_contents(bool chunked)
 {
 	using namespace boost::asio;
-	int content_length = 0;
+	using namespace std::chrono;
 
 	try {
+		int content_length = 0;
+
 		if (chunked) {
+			std::string sbody { buffer_cast<const char*>(response_.data()), response_.size() };
+			
+			const string NEWLINE = "\r\n";
+			const int NEWLINE_SIZE = NEWLINE.size();
+
+			size_t spos = 0, epos;
 			while (true) {
-				if (response_.size() == 0) break;
+				epos = sbody.find(NEWLINE, spos);
+				int len = std::stoi(sbody.substr(spos, epos), nullptr, 16);
+				if (len == 0) break;
 
-				std::string s;
-				std::istream response_stream(&response_);
-				std::getline(response_stream, s);
+				resp_stream_ << sbody.substr(epos + NEWLINE_SIZE, len);
 
-				if (s == "\r") {
-					getline(response_stream, s);
-				}
-
-				content_length = 0;
-				if (!s.empty()) {
-					content_length = stoi(s, nullptr, 16);
-				}
-
-				if (content_length == 0) {
-					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
-					response_.consume(response_.size());
-					break;
-				}
-
-				if (content_length <= (int)response_.size()) {
-					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), content_length);
-					response_.consume(content_length);
-				}
-				else {
-					content_length -= (int)response_.size();
-
-					if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
-					response_.consume(response_.size());
-					break;
-				}
+				spos = epos + NEWLINE_SIZE + len + NEWLINE_SIZE;
 			}
+			content_length = response_.size();
+			response_.consume(response_.size());
 		}
 		else {
 			// Content-Length : done
-			if (resp_stream_) *resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+			resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+
+			content_length = response_.size();
 			response_.consume(response_.size());
 		}
+
+		auto t1 = high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<ms>(t1 - t0_).count();
+		
+		resp_stream_.seekp(0, std::ios::end);
+		content_length = resp_stream_.tellp();
+
+		add_stat(0, 1, content_length, duration);
 	}
 	catch (std::exception &) {}
-	return content_length;
 }
 
 void http_client_loop::build_reqeust()

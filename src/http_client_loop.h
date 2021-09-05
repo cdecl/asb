@@ -67,7 +67,7 @@ public:
 	void start_once();
 	void start();
 	bool is_open();
-	std::unique_ptr<std::stringstream>& get_response();
+	std::stringstream& get_response();
 	Stat& get_stat();
 	StCode& get_stcode();
 
@@ -81,7 +81,7 @@ private:
 	void async_read_header();
 	int parse_header(bool &chunked);
 	void async_read_content(size_t left, bool chunked = false);
-	int parse_contents(bool chunked = false);
+	void parse_contents(bool chunked = false);
 	void build_reqeust();
 
 private:
@@ -93,7 +93,7 @@ private:
 	boost::asio::streambuf request_;
 	boost::asio::streambuf response_;
 
-	std::unique_ptr<std::stringstream> resp_stream_;
+	std::stringstream resp_stream_;
 
 	std::string xhost_;
 	std::string xport_;

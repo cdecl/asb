@@ -36,7 +36,7 @@ bool PreRun(const Args& args)
 		io.run();
 
 		auto &resp = client.get_response();
-		if (resp) cout << resp->str() << endl;
+		cout << resp.str() << endl;
 		return false;
 	}
 
