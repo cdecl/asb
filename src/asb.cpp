@@ -206,7 +206,7 @@ bool Usage(int argc, char* argv[], Args &args)
 	app.footer(
 		"  example:    asb -d 10 -c 10 -t 2 http://www.some_url/ \n"
 		"  example:    asb --test http://www.some_url/ \n"	
-		"  version:    1.5.3"
+		"  version:    1.5.5"
 	);
 
 	try {
