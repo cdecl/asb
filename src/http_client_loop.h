@@ -80,6 +80,7 @@ private:
 	void async_write();
 	void async_read_header();
 	int parse_header(bool &chunked);
+	bool chunked_end();
 	void async_read_content(size_t left, bool chunked = false);
 	void parse_contents(bool chunked = false);
 	void build_reqeust();

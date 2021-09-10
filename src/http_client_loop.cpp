@@ -236,7 +236,13 @@ void http_client_loop::async_read_header()
 			int content_length = parse_header(chunked);
 
 			if (chunked) {
-				async_read_content(content_length, chunked);
+				if (chunked_end()) {
+					parse_contents(true);
+					next_session();
+				}
+				else {
+					async_read_content(content_length, chunked);
+				}
 			}
 			else {
 				if (content_length > 0) {
@@ -255,7 +261,7 @@ void http_client_loop::async_read_header()
 		}
 	};
 
-	// buuffer initialize 
+	// buffer initialize 
 	response_.consume(response_.size());
 
 	if (ssl_) {
@@ -329,6 +335,22 @@ int http_client_loop::parse_header(bool &chunked)
 }
 
 
+bool http_client_loop::chunked_end()
+{
+	using namespace boost::asio;
+
+	bool chunked = false;
+	if (response_.size() > 5) {
+		string s { buffer_cast<const char*>(response_.data()), response_.size() };
+		string ends = s.substr(response_.size() - 5);
+
+		if (ends != "0\r\n\r\n") {
+			chunked = true;
+		}
+	}
+	return chunked;
+}
+
 void http_client_loop::async_read_content(size_t content_length, bool chunked)
 {
 	auto async_read_handler = [this, content_length, chunked](const boost::system::error_code &err, std::size_t len)
@@ -344,16 +366,12 @@ void http_client_loop::async_read_content(size_t content_length, bool chunked)
 		}
 		else {
 			if (chunked) {
-				if (response_.size() > 5) {
-					string s { buffer_cast<const char*>(response_.data()), response_.size() };
-					string ends = s.substr(response_.size() - 5);
-					if (ends != "0\r\n\r\n") {
-						async_read_content(0, true);
-					}
-					else {
-						parse_contents(true);
-						next_session();
-					}
+				if (chunked_end()) {
+					parse_contents(true);
+					next_session();
+				}
+				else {
+					async_read_content(0, true);
 				}
 			}
 			else {
@@ -382,13 +400,13 @@ void http_client_loop::parse_contents(bool chunked)
 	using namespace std::chrono;
 
 	try {
-		int content_length = 0;
+		size_t content_length = 0;
 
 		if (chunked) {
 			std::string sbody { buffer_cast<const char*>(response_.data()), response_.size() };
 			
 			const string NEWLINE = "\r\n";
-			const int NEWLINE_SIZE = NEWLINE.size();
+			const size_t NEWLINE_SIZE = NEWLINE.size();
 
 			size_t spos = 0, epos;
 			while (true) {
