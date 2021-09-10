@@ -10,6 +10,7 @@
 #include "CLI11/CLI11.hpp"
 #include "fmt/format.h"
 
+const std::string ASB_VER = "1.5.7";
 
 std::string read_file(const std::string path)
 {
@@ -50,7 +51,7 @@ void Run(const Args& args)
 	}
 	
 	std::string start = http_client_loop::now();
-	cout << fmt::format("> Start and Running {}s ({})", args.duration, start) << endl;
+	cout << fmt::format("> Start and Running {}s ({}) [v{}]", args.duration, start, ASB_VER) << endl;
 	cout << "  " << args.url << endl;
 	cout << fmt::format("    {} connections and {} Threads ", args.connections, args.threads) << endl;
 
@@ -206,7 +207,7 @@ bool Usage(int argc, char* argv[], Args &args)
 	app.footer(
 		"  example:    asb -d 10 -c 10 -t 2 http://www.some_url/ \n"
 		"  example:    asb --test http://www.some_url/ \n"	
-		"  version:    1.5.5"
+		"  version:    "s + ASB_VER
 	);
 
 	try {

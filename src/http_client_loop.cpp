@@ -344,7 +344,7 @@ bool http_client_loop::chunked_end()
 		string s { buffer_cast<const char*>(response_.data()), response_.size() };
 		string ends = s.substr(response_.size() - 5);
 
-		if (ends != "0\r\n\r\n") {
+		if (ends == "0\r\n\r\n") {
 			chunked = true;
 		}
 	}
