@@ -9,6 +9,17 @@ using namespace std;
 #include "http_client_loop.h"
 
 
+// case insentive find string 
+std::string::size_type ifind(const std::string &s, const std::string &f) {
+	auto it = std::search(s.begin(), s.end(), f.begin(), f.end(), 
+		[](char c1, char c2) { return std::toupper(c1) == std::toupper(c2); }
+	);
+	
+	if (it == s.end()) return string::npos;
+	return std::distance(s.begin(), it);
+}
+
+
 bool http_client_loop::open(const std::string& url, const std::string& proxy)
 {
 	bool r = false;
@@ -307,14 +318,16 @@ int http_client_loop::parse_header(bool &chunked)
 		stcode_[http_version + " " + status_code]++;
 
 		while (getline(response_stream, header) && header != "\r\n") {
-			string::size_type pos = header.find("Content-Length");
+			// string::size_type pos = header.find("Content-Length");
+			auto pos = ifind(header, "Content-Length");
 			if (pos != string::npos) {
 				pos = header.find(":");
 				content_length = std::stoi(header.substr(pos + 1));
 			}
 
 			// Transfer-Encoding : chunked
-			pos = header.find("Transfer-Encoding");
+			// pos = header.find("Transfer-Encoding");
+			pos = ifind(header, "Transfer-Encoding");
 			if (pos != string::npos) {
 				pos = header.find(":");
 
@@ -459,15 +472,32 @@ void http_client_loop::build_reqeust()
 		//abs_path
 		oss << method_ << " " << path_ << " HTTP/1.1\r\n";
 	}
-	oss << "Host: " << host_ << ":" << port_ << "\r\n";
-	oss << "Accept: */*\r\n";
+	
+	// default header 
+	auto it = headers_.find("Host");
+	if (it == headers_.end()) {
+		oss << "Host: " << host_ << ":" << port_ << "\r\n";
+	}
+	else {
+		oss << it->first << ": " << it->second << "\r\n";
+		headers_.erase(it);
+	}
+
+	it = headers_.find("Accept");
+	if (it == headers_.end()) {
+		oss << "Accept: */*\r\n";
+	}
+	else {
+		oss << it->first << ": " << it->second << "\r\n";
+		headers_.erase(it);
+	}
 
 	if (content_length > 0) {
 		oss << "Content-Length: " << content_length << "\r\n";
 	}
 
-	for (auto h : headers_) {
-		oss << h << "\r\n";
+	for (auto kv : headers_) {
+		oss << kv.first << ": " << kv.second << "\r\n";
 	}
 
 	//oss << "User-Agent: asb/" << ver() << "\r\n" << endl;

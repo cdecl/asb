@@ -10,7 +10,7 @@
 #include "CLI11/CLI11.hpp"
 #include "fmt/format.h"
 
-const std::string ASB_VER = "1.5.7";
+const std::string ASB_VER = "1.6";
 
 std::string read_file(const std::string path)
 {

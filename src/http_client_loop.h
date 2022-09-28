@@ -38,7 +38,8 @@ struct http_stat
 
 using Stat = std::map <std::string, http_stat>;
 using StCode = std::map <std::string, int>;
-using header_t = std::vector < std::string >;
+using header_t = std::vector <std::string>;
+using header_st = std::map <std::string, std::string>;
 
 
 class http_client_loop
@@ -50,9 +51,19 @@ public:
 
 	http_client_loop(boost::asio::io_context& io_context, const std::string &method, const std::string &data, header_t headers)
 		: resolver_(io_context), socket_(io_context), ctx_(boost::asio::ssl::context::sslv23), sslsocket_(socket_, ctx_),
-		method_(method), data_(data), headers_(headers)
+		method_(method), data_(data)
 	{
 		next_session = std::bind(&http_client_loop::next_session_s, this);
+
+		// header struct save
+		for (auto &header: headers) {
+			auto pos = header.find(":");
+			if (pos != string::npos) {
+				auto k = boost::trim_copy(header.substr(0, pos));
+				auto v = boost::trim_copy(header.substr(pos + 1));
+				headers_[k] = v;
+			}
+		}
 	}
 
 	~http_client_loop()
@@ -107,7 +118,7 @@ private:
 	std::string path_;
 	std::string method_;
 	std::string data_;
-	header_t headers_;
+	header_st headers_;
 
 	std::function<void()> next_session;
 
