@@ -8,6 +8,8 @@
 using namespace std;
 #include "http_client_loop.h"
 
+const std::string NEWLINE = "\r\n";
+const std::string DUAL_NEWLINE = "\r\n\r\n";
 
 // case insentive find string 
 std::string::size_type ifind(const std::string &s, const std::string &f) {
@@ -69,8 +71,7 @@ bool http_client_loop::open(const std::string& url, const std::string& proxy)
 			});
 		}
 
-		tcp::resolver::query query(xhost_, xport_);
-		auto endpoint_iter = resolver_.resolve(query);
+		auto endpoint_iter = resolver_.resolve(xhost_, xport_);
 		boost::asio::connect(sslsocket_.lowest_layer(), endpoint_iter);
 
 		if (ssl_) {
@@ -99,8 +100,7 @@ void http_client_loop::cancel()
 void http_client_loop::reopen()
 {
 	if (!is_open()) {
-		tcp::resolver::query query(xhost_, xport_);
-		auto endpoint_iter = resolver_.resolve(query);
+		auto endpoint_iter = resolver_.resolve(xhost_, xport_);
 		boost::asio::connect(sslsocket_.lowest_layer(), endpoint_iter);
 
 		if (ssl_) {
@@ -239,7 +239,7 @@ void http_client_loop::async_read_header()
 		}
 		else {
 			resp_stream_.str("");
-			resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), len);
+			resp_stream_ << std::string(buffers_begin(response_.data()), buffers_begin(response_.data()) + len);
 			response_.consume(len);
 
 			bool chunked = false;
@@ -276,10 +276,10 @@ void http_client_loop::async_read_header()
 	response_.consume(response_.size());
 
 	if (ssl_) {
-		boost::asio::async_read_until(sslsocket_, response_, "\r\n\r\n", async_read_until_handler);
+		boost::asio::async_read_until(sslsocket_, response_, DUAL_NEWLINE, async_read_until_handler);
 	}
 	else {
-		boost::asio::async_read_until(socket_, response_, "\r\n\r\n", async_read_until_handler);
+		boost::asio::async_read_until(socket_, response_, DUAL_NEWLINE, async_read_until_handler);
 	}
 }
 
@@ -317,7 +317,7 @@ int http_client_loop::parse_header(bool &chunked)
 		// status_code statistics
 		stcode_[http_version + " " + status_code]++;
 
-		while (getline(response_stream, header) && header != "\r\n") {
+		while (getline(response_stream, header) && header != NEWLINE) {
 			// string::size_type pos = header.find("Content-Length");
 			auto pos = ifind(header, "Content-Length");
 			if (pos != string::npos) {
@@ -354,10 +354,10 @@ bool http_client_loop::chunked_end()
 
 	bool chunked = false;
 	if (response_.size() > 5) {
-		string s { buffer_cast<const char*>(response_.data()), response_.size() };
+		string s { buffers_begin(response_.data()), buffers_end(response_.data()) };
 		string ends = s.substr(response_.size() - 5);
 
-		if (ends == "0\r\n\r\n") {
+		if (ends == "0" + DUAL_NEWLINE) {
 			chunked = true;
 		}
 	}
@@ -416,9 +416,8 @@ void http_client_loop::parse_contents(bool chunked)
 		size_t content_length = 0;
 
 		if (chunked) {
-			std::string sbody { buffer_cast<const char*>(response_.data()), response_.size() };
+			std::string sbody { buffers_begin(response_.data()), buffers_end(response_.data()) };
 			
-			const string NEWLINE = "\r\n";
 			const size_t NEWLINE_SIZE = NEWLINE.size();
 
 			size_t spos = 0, epos;
@@ -436,7 +435,7 @@ void http_client_loop::parse_contents(bool chunked)
 		}
 		else {
 			// Content-Length : done
-			resp_stream_ << std::string(buffer_cast<const char*>(response_.data()), response_.size());
+			resp_stream_ << std::string(buffers_begin(response_.data()), buffers_end(response_.data()));
 
 			content_length = response_.size();
 			response_.consume(response_.size());
@@ -466,43 +465,42 @@ void http_client_loop::build_reqeust()
 
 	if (proxy_) {
 		// absoluteURI
-		oss << method_ << " " << protocol_ << "://" << host_ << ":" << port_ << path_ << " HTTP/1.1\r\n";
+		oss << method_ << " " << protocol_ << "://" << host_ << ":" << port_ << path_ << " HTTP/1.1" << NEWLINE;
 	}
 	else {
 		//abs_path
-		oss << method_ << " " << path_ << " HTTP/1.1\r\n";
+		oss << method_ << " " << path_ << " HTTP/1.1" << NEWLINE;
 	}
 	
-	// default header 
+	// default header
 	auto it = headers_.find("Host");
 	if (it == headers_.end()) {
-		oss << "Host: " << host_ << ":" << port_ << "\r\n";
+		oss << "Host: " << host_ << ":" << port_ << NEWLINE;
 	}
 	else {
-		oss << it->first << ": " << it->second << "\r\n";
-		headers_.erase(it);
+		oss << it->first << ": " << it->second << NEWLINE;
 	}
 
 	it = headers_.find("Accept");
 	if (it == headers_.end()) {
-		oss << "Accept: */*\r\n";
+		oss << "Accept: */*" << NEWLINE;
 	}
 	else {
-		oss << it->first << ": " << it->second << "\r\n";
-		headers_.erase(it);
+		oss << it->first << ": " << it->second << NEWLINE;
 	}
 
 	if (content_length > 0) {
-		oss << "Content-Length: " << content_length << "\r\n";
+		oss << "Content-Length: " << content_length << NEWLINE;
 	}
 
-	for (auto kv : headers_) {
-		oss << kv.first << ": " << kv.second << "\r\n";
+	for (const auto& kv : headers_) {
+		if (kv.first == "Host" || kv.first == "Accept") continue;
+		oss << kv.first << ": " << kv.second << NEWLINE;
 	}
 
 	//oss << "User-Agent: asb/" << ver() << "\r\n" << endl;
-	oss << "Connection: keep-alive\r\n";
-	oss << "\r\n";
+	oss << "Connection: keep-alive" << NEWLINE;
+	oss << NEWLINE;
 
 	if (content_length > 0) {
 		oss << data_;

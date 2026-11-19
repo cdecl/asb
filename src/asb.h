@@ -15,6 +15,7 @@ using namespace std;
 #define BOOST_ASIO_ENABLE_HANDLER_TRACKING
 #endif
 
+#include <boost/asio/deadline_timer.hpp>
 #include "http_client_loop.h"
 
 using http_client_list = vector<shared_ptr<http_client_loop>>;

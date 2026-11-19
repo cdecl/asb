@@ -13,6 +13,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/buffers_iterator.hpp>
 // #include <boost/bind.hpp>
 #include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
